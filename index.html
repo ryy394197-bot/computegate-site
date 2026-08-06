@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ComputeGate — 算力現貨指數媒合</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/market/static/styles.css" />
+</head>
+<body>
+  <div class="glow"></div>
+  <header class="nav">
+    <div class="logo">ComputeGate</div>
+    <div class="ticker">
+      指數 <strong id="idx">—</strong>
+      · 現貨 <strong id="spot">—</strong>
+      · 費率 <strong id="feePct">1.5%</strong>
+      · <strong id="payoutBadge">記帳中</strong>
+    </div>
+  </header>
+
+  <div class="banner warn" id="payoutBanner" hidden>
+    目前收款管道尚未完全打通：所有手續費與餘額<strong>僅記帳，暫不可提領</strong>。打通後會開放。
+  </div>
+
+  <section class="hero">
+    <p class="eyebrow">媒合平台 · 抽手續費 · 不強迫你燒自家電</p>
+    <h1>算力，用指數定價。</h1>
+    <p class="lede">
+      我們架站媒合供給與需求，成交抽 <strong>1.5%</strong> 平台費。
+      新用戶 <strong>7 天試用</strong>（最多 <strong id="trialDeals">3</strong> 筆或 <strong id="trialAmt">2000</strong> TWD 免手續費；同一 Email 終身一次）；
+      供給方可自訂 <strong>釋出 %</strong>。須先登入才能掛機／發需求。
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="#join-host">我有算力</a>
+      <a class="btn" href="#join-rent">我要租算力</a>
+      <a class="btn" href="#quote">算報價</a>
+    </div>
+  </section>
+
+  <section id="quote" class="section alt">
+    <h2>現貨報價器</h2>
+    <p class="hint" id="formula">公式載入中…</p>
+    <p class="hint" id="refLine" hidden></p>
+    <form id="quoteForm" class="quote-form">
+      <label>GPU／規格描述<input name="specs" placeholder="例：RTX 4070 12GB" required /></label>
+      <label>釋出 %<input name="release_percent" type="number" min="1" max="100" step="1" value="100" /></label>
+      <label>時數<input name="hours" type="number" min="0.1" step="0.1" value="1" /></label>
+      <button type="submit">試算</button>
+    </form>
+    <div class="quote-out" id="quoteOut">尚未試算</div>
+  </section>
+
+  <section class="section">
+    <h2>規則</h2>
+    <ul class="bullets">
+      <li>平台費預設 <strong>1.5%</strong>（約 1%–2% 區間）。</li>
+      <li>註冊起 <strong>7 天</strong>試用：免手續費上限為 <strong>3 筆</strong>或累計 <strong>2000 TWD</strong>（先到先限）；<strong>同一 Email 試用資格終身只給一次</strong>。</li>
+      <li>試用結束或額度用完後，恢復 1.5%。</li>
+      <li>掛機須<strong>先登入</strong>，並必填 <strong>釋出 %（1–100）</strong>；單價隨釋出比例調整。調整只影響之後新單。</li>
+      <li>發布需求也須先登入。建議綁定主機軟體指紋：一帳多機、一機一帳；解綁後換帳冷卻 24 小時。</li>
+      <li>單機不足時可「建議多機組合」，需人工確認；初期只支援可獨立切割任務，非訓練叢集。</li>
+      <li>可提領餘額須 ≥ 門檻（預設 <strong id="minW">500</strong> TWD）；試用期內不可提領。</li>
+      <li id="payoutRule">收款管道尚未打通時：平台費只記帳，暫不可提領。</li>
+    </ul>
+  </section>
+
+  <section class="section alt" id="terms">
+    <h2>條款摘要</h2>
+    <ul class="bullets">
+      <li>同一 Email 的試用免手續費資格<strong>終身只給一次</strong>（含上限 3 筆／2000 TWD）。</li>
+      <li>平台只負責媒合與記帳，不擔保實際算力品質、連線穩定或對方付款。</li>
+      <li>禁止挖礦、違法訓練、攻擊／入侵用途；違者永久停權。</li>
+      <li>未付款或品質爭議：先凍結該筆，由人工審核後決定退回或撥款；AI 不自動裁決。</li>
+      <li>嚴重違規可直接永久停權，且不退還已產生之平台費（若有）。</li>
+      <li>收款管道打通前，帳上餘額與手續費僅供記帳，不可提領。</li>
+    </ul>
+    <form id="disputeForm" class="card-form" style="max-width:28rem;margin-top:1.25rem">
+      <h3>回報爭議</h3>
+      <label>Email<input name="reporter_email" type="email" required /></label>
+      <label>角色
+        <select name="role">
+          <option value="host">供給方</option>
+          <option value="renter">需求方</option>
+          <option value="other">其他</option>
+        </select>
+      </label>
+      <label>成交 ID（可空）<input name="deal_id" /></label>
+      <label>說明<textarea name="reason" required rows="3" placeholder="發生什麼事？"></textarea></label>
+      <button type="submit">送出工單（人工處理）</button>
+      <p class="form-msg" hidden></p>
+    </form>
+  </section>
+
+  <section id="join" class="section">
+    <h2>加入排隊（須先登入）</h2>
+    <p class="hint">請先到監看台 <code>http://127.0.0.1:8787</code> 註冊／登入；Token 會自動帶入。未登入無法掛機或發需求。</p>
+    <div class="forms">
+      <form id="join-host" class="card-form">
+        <h3>供給方掛機</h3>
+        <label>暱稱<input name="name" required /></label>
+        <label>Email（須與帳號相同）<input name="email" type="email" required /></label>
+        <label>登入 Token<input name="token" id="hostToken" required placeholder="監看台登入後自動帶入" /></label>
+        <label>GPU／規格<textarea name="specs" required rows="3" placeholder="RTX 3060 12GB，每晚可租"></textarea></label>
+        <label>自訂期望時薪（可空，用指數）<input name="rate" type="number" min="0" step="1" /></label>
+        <label>釋出算力 %（必填 1–100）<input name="release_percent" type="number" min="1" max="100" step="1" value="100" required /></label>
+        <label>主機名稱（建議填，走指紋綁定）<input name="hostname" placeholder="例：desk-pc" /></label>
+        <label>MAC 雜湊（可空）<input name="mac_hash" /></label>
+        <label>磁碟序號（可空）<input name="disk_serial" /></label>
+        <label style="flex-direction:row;align-items:center;gap:0.4rem">
+          <input name="consent_fingerprint" type="checkbox" /> 同意收集軟體指紋用於防重複綁定
+        </label>
+        <button type="submit">掛機（申請試用）</button>
+        <p class="form-msg" hidden></p>
+      </form>
+      <form id="join-rent" class="card-form">
+        <h3>需求方</h3>
+        <label>暱稱<input name="name" required /></label>
+        <label>Email（須與帳號相同）<input name="email" type="email" required /></label>
+        <label>登入 Token<input name="token" id="renterToken" required /></label>
+        <label>需求<textarea name="need" required rows="3"></textarea></label>
+        <label>預算上限<input name="budget" type="number" min="0" step="1" /></label>
+        <button type="submit">送出需求</button>
+        <p class="form-msg" hidden></p>
+      </form>
+    </div>
+  </section>
+
+  <section class="section stats-sec">
+    <h2>盤勢</h2>
+    <div class="stats" id="stats">
+      <div><span>供給</span><strong id="hostCount">—</strong></div>
+      <div><span>需求</span><strong id="rentCount">—</strong></div>
+      <div><span>累計手續費</span><strong id="feeTotal">—</strong></div>
+      <div><span>未結爭議</span><strong id="openDisputes">—</strong></div>
+    </div>
+    <h3 style="margin-top:1.5rem">供給清單（釋出%）</h3>
+    <div id="hostList" class="hint">載入中…</div>
+  </section>
+
+  <section class="section alt" id="pack">
+    <h2>多機組合建議（人工確認）</h2>
+    <p class="hint">單機不夠時，系統只列可組合清單；需人工確認。不自動當成訓練叢集。</p>
+    <form id="packForm" class="quote-form">
+      <label>目標有效 VRAM（GB）<input name="target_vram_gb" type="number" min="1" step="1" value="48" required /></label>
+      <label>需求方 Email（可空）<input name="renter_email" type="email" /></label>
+      <button type="submit">產生建議</button>
+    </form>
+    <div class="quote-out" id="packOut">尚未產生</div>
+  </section>
+
+  <section class="section" id="release">
+    <h2>調整釋出 %</h2>
+    <form id="releaseForm" class="quote-form">
+      <label>供給 Email<input name="email" type="email" required /></label>
+      <label>新的釋出 %<input name="release_percent" type="number" min="1" max="100" step="1" value="50" required /></label>
+      <button type="submit">更新（只影響新單）</button>
+    </form>
+    <p class="form-msg" id="releaseMsg" hidden></p>
+  </section>
+
+  <footer class="foot">
+    <p>ComputeGate · EarnBot 自動維護 · 指數定價 MVP</p>
+  </footer>
+  <script src="/market/static/app.js"></script>
+</body>
+</html>

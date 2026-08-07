@@ -9,7 +9,7 @@
 - 報價用「算力指數」：基本面 × 供需 × 動能（類股價）
 
 ## 公式
-`SPOT = BASE × (VRAM/12) × PERF × DEMAND × MOMENTUM`  
+`SPOT = BASE × (VRAM/12) × PERF × DEMAND × MOMENTUM × (release%/100)`  
 `INDEX = 100 × SPOT / BASE`  
 `GROSS = SPOT × hours`
 

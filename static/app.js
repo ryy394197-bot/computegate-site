@@ -1,4 +1,5 @@
 const AUTH_TOKEN_KEY = "computegate_token";
+const THEME_KEY = "computegate_theme";
 
 /** 顯卡連動：品牌 → 系列 → 型號 → 後綴（SUPER／Ti 等依型號顯示） */
 const GPU_CATALOG = {
@@ -354,6 +355,51 @@ function syncGpuPicker(root) {
 
 document.querySelectorAll("[data-gpu-picker]").forEach(syncGpuPicker);
 
+/* —— Theme —— */
+function applyTheme(theme) {
+  const next = theme === "light" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem(THEME_KEY, next);
+}
+(function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  const preferLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+  applyTheme(saved || (preferLight ? "light" : "dark"));
+})();
+document.getElementById("themeToggle")?.addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme") || "dark";
+  applyTheme(cur === "dark" ? "light" : "dark");
+});
+
+/* —— Range ↔ number sync —— */
+function bindSliderPairs(root = document) {
+  root.querySelectorAll('input[type="range"][data-sync]').forEach((range) => {
+    const name = range.getAttribute("data-sync");
+    const form = range.closest("form") || root;
+    const num = form.querySelector(`input[name="${name}"]`);
+    if (!num) return;
+    const syncFromRange = () => { num.value = range.value; num.dispatchEvent(new Event("input", { bubbles: true })); };
+    const syncFromNum = () => {
+      const v = Math.min(100, Math.max(1, Number(num.value) || 1));
+      num.value = String(v);
+      range.value = String(v);
+    };
+    range.addEventListener("input", syncFromRange);
+    num.addEventListener("input", syncFromNum);
+  });
+}
+bindSliderPairs();
+
+function toast(text, ok = true) {
+  const host = document.getElementById("toastHost");
+  if (!host) return;
+  const el = document.createElement("div");
+  el.className = `toast ${ok ? "ok" : "err"}`;
+  el.textContent = text;
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 3800);
+}
+
 async function api(path, opts = {}) {
   const res = await fetch(path, {
     headers: { "Content-Type": "application/json" },
@@ -402,7 +448,9 @@ function setFormMsg(form, text, ok = true) {
   const msg = form.querySelector(".form-msg");
   if (!msg) return;
   msg.hidden = false;
-  msg.style.color = ok ? "" : "#ff7b7b";
+  msg.classList.toggle("is-error", !ok);
+  msg.dataset.ok = ok ? "true" : "false";
+  msg.style.color = "";
   msg.textContent = text;
 }
 
@@ -416,6 +464,14 @@ function renderWallet(wallet) {
   if (!panel) return;
   if (!wallet) {
     panel.hidden = true;
+    renderReleaseMachines([], "TWD");
+    const balWrap = document.getElementById("navBalanceWrap");
+    if (balWrap) balWrap.hidden = true;
+    const authBtn = document.getElementById("navAuthBtn");
+    if (authBtn) {
+      authBtn.textContent = "登入／註冊";
+      authBtn.href = "#account";
+    }
     return;
   }
   panel.hidden = false;
@@ -436,8 +492,13 @@ function renderWallet(wallet) {
   }
 
   const hostMachines = (host.machines || [])
-    .map((m) => `<li>${escapeHtml(m.name)} · 釋出 ${m.release_percent}% · 餘額 ${m.balance} ${cur}</li>`)
+    .map((m) => {
+      const gpu = m.gpu_display || m.gpu_model || m.specs || "—";
+      const spot = m.spot_twd_per_hour != null ? `${m.spot_twd_per_hour} ${cur}/時` : "—";
+      return `<li>${escapeHtml(m.name)} · ${escapeHtml(gpu)} · 釋出 ${m.release_percent}% · ${spot} · 餘額 ${m.balance} ${cur}</li>`;
+    })
     .join("") || "<li>尚未掛機</li>";
+  renderReleaseMachines(host.machines || [], cur);
   const hostReasons = (hw.reasons || []).map((r) => `<li>${escapeHtml(r)}</li>`).join("");
   const renterReasons = (rw.reasons || []).map((r) => `<li>${escapeHtml(r)}</li>`).join("");
 
@@ -453,6 +514,20 @@ function renderWallet(wallet) {
       `<strong>${renter.balance ?? 0} ${cur}</strong>` +
       `<span class="tag ${rw.can_request ? "ok" : "block"}">${rw.can_request ? "可申請提領" : "暫不可提領"}</span>` +
       `<ul>${renter.registered ? `<li>${escapeHtml(renter.need || "已登記需求")}</li>` : "<li>尚未發需求</li>"}${renterReasons}</ul></div>`;
+  }
+
+  const balWrap = document.getElementById("navBalanceWrap");
+  const bal = document.getElementById("navBalance");
+  if (balWrap && bal) {
+    const total = Number(host.balance_total || 0) + Number(renter.balance || 0);
+    balWrap.hidden = false;
+    bal.textContent = `${total} ${cur}`;
+  }
+
+  const authBtn = document.getElementById("navAuthBtn");
+  if (authBtn) {
+    authBtn.textContent = "帳戶";
+    authBtn.href = "#account";
   }
 
   if (hist) {
@@ -479,6 +554,83 @@ function renderWallet(wallet) {
   }
 }
 
+function renderReleaseMachines(machines, currency) {
+  const list = document.getElementById("releaseMachineList");
+  if (!list) return;
+  const cur = currency || "TWD";
+  if (!machines.length) {
+    list.innerHTML = `<p class="hint">尚未掛機 — 先到上方完成掛機後，即可逐台調整釋出 %。</p>`;
+    return;
+  }
+  list.innerHTML = machines.map((m) => {
+    const gpu = m.gpu_display || m.gpu_model || m.specs || "—";
+    const spot = m.spot_twd_per_hour != null ? `${m.spot_twd_per_hour} ${cur}/時` : "—";
+    const mid = m.machine_id ? ` · 機碼 ${escapeHtml(m.machine_id.slice(0, 8))}…` : "";
+    const rp = Number(m.release_percent) || 100;
+    return (
+      `<div class="release-row" data-host-id="${escapeHtml(m.id)}">` +
+      `<div class="meta"><b>${escapeHtml(m.name || "未命名")}</b><br/>` +
+      `${escapeHtml(gpu)} · 有效 VRAM ${m.effective_vram_gb ?? m.vram_gb ?? "—"}GB · 目前現貨 ${spot}${mid}</div>` +
+      `<label class="slider-field">釋出 %` +
+      `<div class="slider-row">` +
+      `<input type="range" min="1" max="100" step="1" value="${rp}" data-sync="release_one" />` +
+      `<input type="number" name="release_one" min="1" max="100" step="1" value="${rp}" />` +
+      `<span class="unit">%</span></div></label>` +
+      `<button type="button" class="release-one-btn">更新此機</button>` +
+      `</div>`
+    );
+  }).join("");
+
+  bindSliderPairs(list);
+
+  list.querySelectorAll(".release-one-btn").forEach((btn) => {
+    btn.onclick = async () => {
+      const row = btn.closest(".release-row");
+      const hostId = row?.dataset.hostId || "";
+      const input = row?.querySelector('input[type="number"]');
+      const rp = Number(input?.value || 0);
+      const msg = document.getElementById("releaseMsg");
+      const token = getToken();
+      if (!token) {
+        if (msg) {
+          msg.hidden = false;
+          msg.classList.add("is-error");
+          msg.textContent = "請先登入";
+        }
+        toast("請先登入", false);
+        return;
+      }
+      try {
+        const me = await api(`/api/market/auth/me?token=${encodeURIComponent(token)}`);
+        const lead = await api("/api/market/host/release", {
+          method: "POST",
+          body: JSON.stringify({
+            token,
+            email: me.user.email,
+            host_id: hostId,
+            release_percent: rp,
+          }),
+        });
+        if (msg) {
+          msg.hidden = false;
+          msg.classList.remove("is-error");
+          msg.textContent = `已更新「${lead.name || hostId}」釋出 ${lead.release_percent}%（只影響新單）`;
+        }
+        toast(`已更新釋出 ${lead.release_percent}%`, true);
+        await refreshAuth();
+        await refreshStats();
+      } catch (err) {
+        if (msg) {
+          msg.hidden = false;
+          msg.classList.add("is-error");
+          msg.textContent = err.message;
+        }
+        toast(err.message, false);
+      }
+    };
+  });
+}
+
 async function refreshAuth() {
   const status = document.getElementById("authStatus");
   const nav = document.getElementById("navAuth");
@@ -489,6 +641,7 @@ async function refreshAuth() {
     if (nav) nav.textContent = "未登入";
     if (table) table.textContent = "";
     renderWallet(null);
+    renderReleaseMachines([], "TWD");
     return null;
   }
   try {
@@ -528,6 +681,7 @@ async function refreshAuth() {
     if (status) status.textContent = "Session 失效，請重新登入";
     if (nav) nav.textContent = "未登入";
     renderWallet(null);
+    renderReleaseMachines([], "TWD");
     return null;
   }
 }
@@ -573,13 +727,39 @@ async function refreshStats() {
       refLine.hidden = true;
     }
 
-    const list = document.getElementById("hostList");
-    const rows = s.host_list || [];
-    list.innerHTML = rows.length
-      ? rows.map((h) =>
-          `<div><b>${escapeHtml(h.name)}</b> · ${escapeHtml(h.specs)} · 釋出 <b>${h.release_percent}%</b> · 有效 VRAM ${h.effective_vram_gb}GB · ${h.spot_twd_per_hour} TWD/時</div>`
-        ).join("")
-      : "尚無供給。";
+    window.__cgHostRows = s.host_list || [];
+    renderHostMarket();
+
+    const demand = document.getElementById("demandState");
+    if (demand) {
+      const hosts = Number(s.hosts || 0);
+      const renters = Number(s.renters || 0);
+      let label = "觀望中";
+      if (hosts === 0 && renters === 0) label = "冷啟動 · 等待首批供給／需求";
+      else if (hosts > renters * 1.5) label = "供給偏多 · 租方較有議價空間";
+      else if (renters > hosts * 1.5) label = "需求偏多 · 掛機較易成交";
+      else label = "供需大致平衡";
+      demand.textContent = label;
+    }
+
+    const spark = document.getElementById("sparkBars");
+    if (spark) {
+      const seed = Math.max(4, Math.min(16, Number(s.hosts || 0) + Number(s.renters || 0) + 6));
+      const bars = [];
+      for (let i = 0; i < 18; i += 1) {
+        const h = 18 + ((i * 17 + seed * 3) % 70);
+        bars.push(`<span style="height:${h}%"></span>`);
+      }
+      spark.innerHTML = bars.join("");
+    }
+
+    const chip = document.getElementById("payoutChip");
+    if (chip) chip.textContent = s.payout_ready ? "收款已開 · 可申請提領" : "收款未通 · 只記帳";
+
+    const ruleDeals = document.getElementById("ruleTrialDeals");
+    const ruleAmt = document.getElementById("ruleTrialAmt");
+    if (ruleDeals) ruleDeals.textContent = s.trial_max_free_deals ?? 3;
+    if (ruleAmt) ruleAmt.textContent = s.trial_max_free_amount ?? 2000;
   } catch (_) {
     document.getElementById("hostCount").textContent = "離線";
     document.getElementById("rentCount").textContent = "—";
@@ -587,6 +767,50 @@ async function refreshStats() {
     document.getElementById("spot").textContent = "離線";
   }
 }
+
+function renderHostMarket() {
+  const list = document.getElementById("hostList");
+  if (!list) return;
+  const rows = Array.isArray(window.__cgHostRows) ? [...window.__cgHostRows] : [];
+  const q = (document.getElementById("hostFilter")?.value || "").trim().toLowerCase();
+  const sort = document.getElementById("hostSort")?.value || "spot-asc";
+  let filtered = rows;
+  if (q) {
+    filtered = rows.filter((h) => {
+      const blob = `${h.name || ""} ${h.specs || ""} ${h.gpu_display || ""} ${h.gpu_model || ""}`.toLowerCase();
+      return blob.includes(q);
+    });
+  }
+  const sorters = {
+    "spot-asc": (a, b) => (a.spot_twd_per_hour ?? 0) - (b.spot_twd_per_hour ?? 0),
+    "spot-desc": (a, b) => (b.spot_twd_per_hour ?? 0) - (a.spot_twd_per_hour ?? 0),
+    "vram-desc": (a, b) => (b.effective_vram_gb ?? b.vram_gb ?? 0) - (a.effective_vram_gb ?? a.vram_gb ?? 0),
+    "release-desc": (a, b) => (b.release_percent ?? 0) - (a.release_percent ?? 0),
+  };
+  filtered.sort(sorters[sort] || sorters["spot-asc"]);
+  if (!filtered.length) {
+    list.innerHTML = `<p class="host-empty">${rows.length ? "沒有符合篩選的主機" : "尚無供給。成為第一位掛機者？"}</p>`;
+    return;
+  }
+  list.innerHTML = filtered.map((h) => {
+    const gpu = h.gpu_display || h.specs || "未知 GPU";
+    return (
+      `<article class="host-card">` +
+      `<h3>${escapeHtml(h.name || "未命名")}</h3>` +
+      `<div class="host-gpu">${escapeHtml(gpu)}</div>` +
+      `<div class="host-meta">` +
+      `<span>VRAM ${h.effective_vram_gb ?? h.vram_gb ?? "—"}GB</span>` +
+      `<span>釋出 ${h.release_percent}%</span>` +
+      `<span>可租</span>` +
+      `</div>` +
+      `<div class="host-price">${h.spot_twd_per_hour ?? "—"} <small>TWD／時</small></div>` +
+      `</article>`
+    );
+  }).join("");
+}
+
+document.getElementById("hostFilter")?.addEventListener("input", renderHostMarket);
+document.getElementById("hostSort")?.addEventListener("change", renderHostMarket);
 
 document.getElementById("authRegisterForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -642,6 +866,7 @@ document.getElementById("authLoginForm").addEventListener("submit", async (e) =>
     });
     setToken(r.token);
     setFormMsg(form, "登入成功", true);
+    toast("登入成功", true);
     form.reset();
     await refreshAuth();
   } catch (err) {
@@ -662,16 +887,22 @@ document.getElementById("btnLogout").onclick = async () => {
 
 document.getElementById("quoteForm").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const form = e.target;
+  await runQuote(false);
+});
+
+let quoteTimer = null;
+async function runQuote(silent) {
+  const form = document.getElementById("quoteForm");
+  if (!form) return;
   const picker = form.querySelector("[data-gpu-picker]");
   if (picker && !gpuPickerReady(picker)) {
-    document.getElementById("quoteOut").textContent = "請先選完品牌／系列／型號／後綴（含 SUPER）";
+    if (!silent) document.getElementById("quoteOut").textContent = "請先選完品牌／系列／型號／後綴（含 SUPER）";
     return;
   }
   const fd = new FormData(form);
   const specs = String(fd.get("specs") || "").trim();
   if (!specs) {
-    document.getElementById("quoteOut").textContent = "請先選完品牌／系列／型號／後綴";
+    if (!silent) document.getElementById("quoteOut").textContent = "請先選完品牌／系列／型號／後綴";
     return;
   }
   try {
@@ -687,18 +918,33 @@ document.getElementById("quoteForm").addEventListener("submit", async (e) => {
     });
     const warn = q.gpu_known
       ? ""
-      : `<div style="color:#c45c26;margin-top:0.35rem">⚠ 未辨識此 GPU，暫以權重 1.0 估算，請確認型號／後綴。</div>`;
+      : `<div class="quote-warn">未辨識此 GPU，暫以權重 1.0 估算，請確認型號／後綴。</div>`;
     document.getElementById("quoteOut").innerHTML =
-      `GPU <b>${escapeHtml(q.gpu_display || q.gpu_model)}</b>` +
-      ` · 釋出 <b>${q.release_percent}%</b> · VRAM ${q.vram_gb}GB（有效 ${q.effective_vram_gb}GB）<br/>` +
-      `指數 <b>${q.index_points}</b> · 現貨 <b>${q.spot_twd_per_hour}</b> TWD/時<br/>` +
-      `成交估 <b>${q.gross_twd}</b> TWD · 非試用手續費約 ${q.fee_if_no_trial} TWD` +
-      `<div class="hint" style="margin-top:0.35rem">PERF ${q.perf_tier} · 供需×${q.demand_mult} · 動能×${q.momentum}` +
-      ` · 試用期內可能免收（${q.trial_days} 天／最多 ${q.trial_max_free_deals} 筆或 ${q.trial_max_free_amount} TWD）</div>` +
+      `<div class="quote-grid">` +
+      `<div class="q-item"><span>顯卡</span><strong>${escapeHtml(q.gpu_display || q.gpu_model)}</strong></div>` +
+      `<div class="q-item"><span>現貨單價</span><strong>${q.spot_twd_per_hour} TWD/時</strong></div>` +
+      `<div class="q-item"><span>成交估</span><strong>${q.gross_twd} TWD</strong></div>` +
+      `<div class="q-item"><span>指數</span><strong>${q.index_points}</strong></div>` +
+      `<div class="q-item"><span>釋出／有效 VRAM</span><strong>${q.release_percent}% · ${q.effective_vram_gb}GB</strong></div>` +
+      `<div class="q-item"><span>非試用手續費</span><strong>${q.fee_if_no_trial} TWD</strong></div>` +
+      `</div>` +
+      `<p class="hint" style="margin-top:0.75rem">PERF ${q.perf_tier} · 供需×${q.demand_mult} · 動能×${q.momentum}` +
+      ` · 試用期內可能免收（${q.trial_days} 天／最多 ${q.trial_max_free_deals} 筆或 ${q.trial_max_free_amount} TWD）</p>` +
       warn;
   } catch (err) {
     document.getElementById("quoteOut").textContent = err.message;
   }
+}
+
+function scheduleQuote() {
+  clearTimeout(quoteTimer);
+  quoteTimer = setTimeout(() => runQuote(true), 450);
+}
+
+["change", "input"].forEach((evt) => {
+  document.getElementById("quoteForm")?.addEventListener(evt, (e) => {
+    if (e.target?.matches("select, input")) scheduleQuote();
+  });
 });
 
 document.getElementById("join-host").addEventListener("submit", async (e) => {
@@ -754,9 +1000,12 @@ document.getElementById("join-host").addEventListener("submit", async (e) => {
   try {
     const lead = await api("/api/market/host", { method: "POST", body: JSON.stringify(body) });
     setFormMsg(form, `已掛機：釋出 ${lead.release_percent}% · ${lead.specs}`, true);
+    toast(`已掛機：釋出 ${lead.release_percent}%`, true);
     form.reset();
     form.querySelector('[name="release_percent"]').value = "100";
     form.querySelector('[name="vram_gb"]').value = "12";
+    const rpRange = form.querySelector('[name="release_percent_range"]');
+    if (rpRange) rpRange.value = "100";
     // 重設連動選單
     if (picker) {
       picker.querySelector('[name="gpu_brand"]').value = "";
@@ -810,30 +1059,48 @@ document.getElementById("releaseForm").addEventListener("submit", async (e) => {
   const token = getToken();
   if (!token) {
     msg.hidden = false;
-    msg.style.color = "#ff7b7b";
+    msg.classList.add("is-error");
     msg.textContent = "請先登入";
+    toast("請先登入", false);
+    return;
+  }
+  const fd = new FormData(e.target);
+  const applyAll = fd.get("apply_all") === "on";
+  const machineRows = document.querySelectorAll("#releaseMachineList .release-row");
+  if (!applyAll && machineRows.length > 1) {
+    msg.hidden = false;
+    msg.classList.add("is-error");
+    msg.textContent = "多機帳號請先勾選「確認套用到全部主機」，或改用上方逐台更新";
     return;
   }
   try {
     const me = await api(`/api/market/auth/me?token=${encodeURIComponent(token)}`);
-    const fd = new FormData(e.target);
+    const body = {
+      token,
+      email: me.user.email,
+      release_percent: Number(fd.get("release_percent")),
+      apply_all: applyAll || machineRows.length > 1,
+    };
+    if (!body.apply_all && machineRows.length === 1) {
+      body.host_id = machineRows[0].dataset.hostId || "";
+    }
     const lead = await api("/api/market/host/release", {
       method: "POST",
-      body: JSON.stringify({
-        token,
-        email: me.user.email,
-        release_percent: Number(fd.get("release_percent")),
-      }),
+      body: JSON.stringify(body),
     });
     msg.hidden = false;
-    msg.style.color = "";
-    msg.textContent = `已更新：目前釋出 ${lead.release_percent}%（只影響新單）`;
+    msg.classList.remove("is-error");
+    msg.textContent = body.apply_all
+      ? `已全部更新為釋出 ${lead.release_percent}%（只影響新單）`
+      : `已更新：目前釋出 ${lead.release_percent}%（只影響新單）`;
+    toast(msg.textContent, true);
     await refreshAuth();
     await refreshStats();
   } catch (err) {
     msg.hidden = false;
-    msg.style.color = "#ff7b7b";
+    msg.classList.add("is-error");
     msg.textContent = err.message;
+    toast(err.message, false);
   }
 });
 
@@ -844,7 +1111,7 @@ document.getElementById("withdrawForm").addEventListener("submit", async (e) => 
   const token = getToken();
   if (!token) {
     msg.hidden = false;
-    msg.style.color = "#ff7b7b";
+    msg.classList.add("is-error");
     msg.textContent = "請先登入";
     return;
   }
@@ -859,14 +1126,16 @@ document.getElementById("withdrawForm").addEventListener("submit", async (e) => 
       }),
     });
     msg.hidden = false;
-    msg.style.color = "";
+    msg.classList.remove("is-error");
     msg.textContent = rec.message || "提領申請已送出";
+    toast(msg.textContent, true);
     form.reset();
     await refreshAuth();
   } catch (err) {
     msg.hidden = false;
-    msg.style.color = "#ff7b7b";
+    msg.classList.add("is-error");
     msg.textContent = err.message;
+    toast(err.message, false);
     await refreshAuth();
   }
 });

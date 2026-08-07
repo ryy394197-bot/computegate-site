@@ -1,144 +1,224 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ComputeGate — 客戶頁</title>
+  <title>ComputeGate — 算力媒合</title>
+  <meta name="description" content="釋放閒置 GPU，或租用需要的算力。成交抽 1.5%，供給方可自訂釋出 %。" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/market/static/styles.css?v=20260806i" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/market/static/styles.css?v=20260807c" />
 </head>
 <body>
-  <div class="glow"></div>
+  <!-- 背景氛圍：柔和光暈，不搶內容 -->
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
   <header class="nav">
-    <div class="logo">ComputeGate</div>
-    <div class="ticker">
-      指數 <strong id="idx">—</strong>
-      · 現貨 <strong id="spot">—</strong>
-      · 費率 <strong id="feePct">1.5%</strong>
-      · <strong id="payoutBadge">記帳中</strong>
-      · <span id="navAuth">未登入</span>
+    <a class="brand" href="#top" aria-label="ComputeGate 首頁">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">ComputeGate</span>
+    </a>
+    <nav class="nav-links" aria-label="主要導覽">
+      <a href="#index">指數</a>
+      <a href="#quote">試算</a>
+      <a href="#market">市場</a>
+      <a href="#rules">規則</a>
+    </nav>
+    <div class="nav-actions">
+      <div class="nav-balance" id="navBalanceWrap" hidden>
+        <span class="nav-balance-label">餘額</span>
+        <strong id="navBalance">—</strong>
+      </div>
+      <button type="button" class="icon-btn" id="themeToggle" title="切換深淺色" aria-label="切換深淺色">
+        <span class="theme-icon theme-icon-dark" aria-hidden="true">☾</span>
+        <span class="theme-icon theme-icon-light" aria-hidden="true">☀</span>
+      </button>
+      <a class="btn btn-ghost btn-sm" href="#account" id="navAuthBtn">登入／註冊</a>
+      <span class="nav-auth-chip" id="navAuth">未登入</span>
     </div>
   </header>
 
-  <div class="banner warn" id="payoutBanner" hidden>
+  <div class="banner banner-warn" id="payoutBanner" hidden role="status">
     目前收款管道尚未完全打通：所有手續費與餘額<strong>僅記帳，暫不可提領</strong>。打通後會開放。
   </div>
 
-  <section class="hero">
-    <p class="eyebrow">客戶頁 · 註冊 · 掛機 · 租算力</p>
-    <h1>算力，用指數定價。</h1>
-    <p class="lede">
-      成交抽 <strong>1.5%</strong>。新用戶 <strong>7 天試用</strong>
-      （最多 <strong id="trialDeals">3</strong> 筆或 <strong id="trialAmt">2000</strong> TWD 免手續費；同一 Email 終身一次）。
-      供給方可自訂 <strong>釋出 %</strong>。
-    </p>
-    <div class="cta">
-      <a class="btn primary" href="#account">註冊／登入</a>
-      <a class="btn" href="#join-host">我有算力</a>
-      <a class="btn" href="#join-rent">我要租算力</a>
-      <a class="btn" href="#quote">算報價</a>
-    </div>
-  </section>
-
-  <section id="account" class="section">
-    <h2>帳號</h2>
-    <p class="hint">一帳可綁多機；一機指紋同時只能一帳；解綁後換帳冷卻 24 小時。試用同一 Email 終身一次。</p>
-    <div class="forms">
-      <form id="authRegisterForm" class="card-form">
-        <h3>註冊</h3>
-        <label>Email<input name="email" type="email" required /></label>
-        <label>密碼（≥6）<input name="password" type="password" required minlength="6" /></label>
-        <label>暱稱<input name="display_name" /></label>
-        <button type="submit">註冊</button>
-        <p class="form-msg" hidden></p>
-      </form>
-      <form id="authVerifyForm" class="card-form">
-        <h3>驗證碼</h3>
-        <p class="hint">本機模式：註冊成功後會顯示驗證碼。</p>
-        <label>Email<input name="email" type="email" required /></label>
-        <label>6 位碼<input name="code" required /></label>
-        <button type="submit">驗證</button>
-        <p class="form-msg" hidden></p>
-      </form>
-      <form id="authLoginForm" class="card-form">
-        <h3>登入</h3>
-        <label>Email<input name="email" type="email" required /></label>
-        <label>密碼<input name="password" type="password" required /></label>
-        <button type="submit" class="primary">登入</button>
-        <button type="button" id="btnLogout" class="btn" style="margin-top:0.5rem">登出</button>
-        <p class="form-msg" hidden></p>
-      </form>
-    </div>
-    <p class="hint" id="authStatus">尚未登入</p>
-    <div id="machineTable" class="hint" style="margin-top:0.75rem"></div>
-    <div id="walletPanel" class="wallet-panel" hidden>
-      <h3>我的餘額與提領</h3>
-      <p class="hint" id="walletStatus"></p>
-      <div class="wallet-grid" id="walletGrid"></div>
-      <form id="withdrawForm" class="card-form" style="margin-top:1rem;max-width:28rem">
-        <h3 style="font-size:1.2rem">申請提領</h3>
-        <label>身份
-          <select name="role">
-            <option value="host">供給方餘額</option>
-            <option value="renter">需求方餘額</option>
-          </select>
-        </label>
-        <label>金額（TWD）<input name="amount" type="number" min="1" step="1" required /></label>
-        <button type="submit" id="withdrawBtn">送出申請</button>
-        <p class="form-msg" id="withdrawMsg" hidden></p>
-      </form>
-      <div id="withdrawHistory" class="hint" style="margin-top:0.75rem"></div>
-    </div>
-  </section>
-
-  <section id="quote" class="section alt">
-    <h2>現貨報價器</h2>
-    <p class="hint" id="formula">公式載入中…</p>
-    <p class="hint" id="refLine" hidden></p>
-    <form id="quoteForm" class="quote-form">
-      <div class="gpu-picker" data-gpu-picker="quote">
-        <label>品牌
-          <select name="gpu_brand" required>
-            <option value="">先選 N 卡／A 卡</option>
-            <option value="nvidia">N 卡（NVIDIA）</option>
-            <option value="amd">A 卡（AMD）</option>
-          </select>
-        </label>
-        <label>系列
-          <select name="gpu_series" required disabled>
-            <option value="">先選系列</option>
-          </select>
-        </label>
-        <label>型號
-          <select name="gpu_model" required disabled>
-            <option value="">先選型號</option>
-          </select>
-        </label>
-        <label>後綴（SUPER／Ti／XT…）
-          <select name="gpu_suffix" disabled>
-            <option value="">先選後綴</option>
-          </select>
-        </label>
+  <main id="top">
+    <!-- Hero：品牌為主視覺錨點 -->
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">GPU 算力媒合 · 1.5% 平台費</p>
+        <h1 class="hero-brand">ComputeGate</h1>
+        <p class="hero-headline">釋放閒置 GPU，或租用需要的算力</p>
+        <p class="lede">
+          平台只做媒合與記帳。供給方可自訂<strong>釋出 %</strong>；
+          新用戶享 <strong>7 天試用</strong>
+          （最多 <strong id="trialDeals">3</strong> 筆或
+          <strong id="trialAmt">2000</strong> TWD 免手續費，同一 Email 終身一次）。
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="#join-host">我要掛機出租</a>
+          <a class="btn btn-secondary" href="#join-rent">我要租用算力</a>
+          <a class="btn btn-ghost" href="#quote">先試算報價</a>
+        </div>
+        <ul class="hero-pills" aria-label="重點規則">
+          <li>手續費 1.5%</li>
+          <li>釋出 % 自己決定</li>
+          <li id="payoutChip">收款未通・只記帳</li>
+        </ul>
       </div>
-      <label>VRAM（GB）<input name="vram_gb" type="number" min="4" max="128" step="1" value="12" required /></label>
-      <label>釋出 %<input name="release_percent" type="number" min="1" max="100" step="1" value="100" /></label>
-      <label>時數<input name="hours" type="number" min="0.1" step="0.1" value="1" /></label>
-      <input type="hidden" name="specs" id="quoteSpecs" />
-      <p class="hint" id="quoteGpuPreview">尚未選擇顯卡</p>
-      <button type="submit">試算</button>
-    </form>
-    <div class="quote-out" id="quoteOut">尚未試算</div>
-  </section>
+      <aside class="hero-panel" aria-label="即時盤勢摘要">
+        <div class="hero-stat">
+          <span>SPOT 指數</span>
+          <strong id="idx" class="mono animate-num">—</strong>
+        </div>
+        <div class="hero-stat">
+          <span>現貨基準</span>
+          <strong id="spot" class="mono animate-num">—</strong>
+        </div>
+        <div class="hero-stat">
+          <span>平台費率</span>
+          <strong id="feePct" class="mono">1.5%</strong>
+        </div>
+        <div class="hero-stat">
+          <span>提領狀態</span>
+          <strong id="payoutBadge">記帳中</strong>
+        </div>
+      </aside>
+    </section>
 
-  <section id="join" class="section">
-    <h2>掛機／發需求（須先登入）</h2>
-    <div class="forms">
-      <form id="join-host" class="card-form">
-        <h3>供給方掛機</h3>
-        <label>顯示暱稱<input name="name" required /></label>
-        <div class="gpu-picker" data-gpu-picker="host">
+    <!-- 即時指數 -->
+    <section id="index" class="section">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Live index</p>
+          <h2>即時指數</h2>
+          <p class="section-desc">股價式定價：VRAM × PERF × 供需 × 動能 × 釋出 %。</p>
+        </div>
+      </div>
+      <div class="index-grid" id="stats">
+        <article class="metric-card metric-accent">
+          <span class="metric-label">供給主機</span>
+          <strong id="hostCount" class="mono">—</strong>
+          <span class="metric-hint">目前上架</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">需求方</span>
+          <strong id="rentCount" class="mono">—</strong>
+          <span class="metric-hint">已發需求</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">累計手續費</span>
+          <strong id="feeTotal" class="mono">—</strong>
+          <span class="metric-hint">平台抽成合計</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">未結爭議</span>
+          <strong id="openDisputes" class="mono">—</strong>
+          <span class="metric-hint">人工審核中</span>
+        </article>
+        <article class="metric-card metric-wide">
+          <span class="metric-label">供需狀態</span>
+          <strong id="demandState">載入中…</strong>
+          <p class="metric-hint" id="formula">公式載入中…</p>
+          <p class="metric-hint" id="refLine" hidden></p>
+          <div class="spark" id="sparkBars" aria-hidden="true"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 帳號 -->
+    <section id="account" class="section">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Account</p>
+          <h2>帳號與錢包</h2>
+          <p class="section-desc">一帳可綁多機；一機指紋同時只能一帳。解綁後換帳冷卻 24 小時。</p>
+        </div>
+        <p class="status-chip" id="authStatus">尚未登入</p>
+      </div>
+
+      <div class="forms forms-3">
+        <form id="authRegisterForm" class="card-form">
+          <header class="card-head">
+            <h3>註冊</h3>
+            <p>建立帳號後需驗證碼</p>
+          </header>
+          <label>Email<input name="email" type="email" required autocomplete="email" /></label>
+          <label>密碼（≥6）<input name="password" type="password" required minlength="6" autocomplete="new-password" /></label>
+          <label>暱稱<input name="display_name" autocomplete="nickname" /></label>
+          <button type="submit" class="btn btn-primary btn-block">註冊</button>
+          <p class="form-msg" hidden></p>
+        </form>
+
+        <form id="authVerifyForm" class="card-form">
+          <header class="card-head">
+            <h3>驗證碼</h3>
+            <p>本機模式：註冊成功後會顯示碼</p>
+          </header>
+          <label>Email<input name="email" type="email" required autocomplete="email" /></label>
+          <label>6 位碼<input name="code" required inputmode="numeric" maxlength="8" /></label>
+          <button type="submit" class="btn btn-secondary btn-block">驗證</button>
+          <p class="form-msg" hidden></p>
+        </form>
+
+        <form id="authLoginForm" class="card-form">
+          <header class="card-head">
+            <h3>登入</h3>
+            <p>登入後可掛機、租用與提領申請</p>
+          </header>
+          <label>Email<input name="email" type="email" required autocomplete="username" /></label>
+          <label>密碼<input name="password" type="password" required autocomplete="current-password" /></label>
+          <button type="submit" class="btn btn-primary btn-block">登入</button>
+          <button type="button" id="btnLogout" class="btn btn-ghost btn-block">登出</button>
+          <p class="form-msg" hidden></p>
+        </form>
+      </div>
+
+      <div id="machineTable" class="machine-table"></div>
+
+      <div id="walletPanel" class="wallet-panel" hidden>
+        <div class="section-head compact">
+          <div>
+            <h3>我的餘額與提領</h3>
+            <p class="hint" id="walletStatus"></p>
+          </div>
+        </div>
+        <div class="wallet-grid" id="walletGrid"></div>
+        <div class="wallet-actions">
+          <form id="withdrawForm" class="card-form">
+            <header class="card-head">
+              <h3>申請提領</h3>
+              <p>試用期內不可提領；達門檻且收款開啟才可送出</p>
+            </header>
+            <label>身份
+              <select name="role">
+                <option value="host">供給方餘額</option>
+                <option value="renter">需求方餘額</option>
+              </select>
+            </label>
+            <label>金額（TWD）<input name="amount" type="number" min="1" step="1" required /></label>
+            <button type="submit" id="withdrawBtn" class="btn btn-primary btn-block">送出申請</button>
+            <p class="form-msg" id="withdrawMsg" hidden></p>
+          </form>
+          <div id="withdrawHistory" class="history-box"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 報價器 -->
+    <section id="quote" class="section section-panel">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Quote</p>
+          <h2>現貨報價器</h2>
+          <p class="section-desc">支援完整後綴（SUPER／Ti／Ti SUPER／XT…）。調整釋出 % 可即時試算。</p>
+        </div>
+      </div>
+
+      <form id="quoteForm" class="quote-form card-surface">
+        <div class="gpu-picker" data-gpu-picker="quote">
           <label>品牌
             <select name="gpu_brand" required>
               <option value="">先選 N 卡／A 卡</option>
@@ -162,83 +242,229 @@
             </select>
           </label>
         </div>
-        <label>VRAM（GB）<input name="vram_gb" type="number" min="4" max="128" step="1" value="12" required /></label>
-        <input type="hidden" name="specs" id="hostSpecs" />
-        <p class="hint" id="hostGpuPreview">尚未選擇顯卡</p>
-        <label>補充說明（可空）<textarea name="note" rows="2" placeholder="例：每晚 22:00–08:00 可租"></textarea></label>
-        <label>自訂期望時薪（可空）<input name="rate" type="number" min="0" step="1" /></label>
-        <label>釋出算力 %（必填 1–100）<input name="release_percent" type="number" min="1" max="100" step="1" value="100" required /></label>
-        <label>主機名稱（建議，指紋）<input name="hostname" placeholder="例：desk-pc" /></label>
-        <label>MAC 雜湊（可空）<input name="mac_hash" /></label>
-        <label>磁碟序號（可空）<input name="disk_serial" /></label>
-        <label style="flex-direction:row;align-items:center;gap:0.4rem">
-          <input name="consent_fingerprint" type="checkbox" /> 同意收集軟體指紋防重複綁定
+
+        <div class="quote-controls">
+          <label>VRAM（GB）
+            <input name="vram_gb" type="number" min="4" max="128" step="1" value="12" required />
+          </label>
+          <label class="slider-field">釋出 %
+            <div class="slider-row">
+              <input name="release_percent_range" type="range" min="1" max="100" step="1" value="100" data-sync="release_percent" />
+              <input name="release_percent" type="number" min="1" max="100" step="1" value="100" />
+              <span class="unit">%</span>
+            </div>
+          </label>
+          <label>時數
+            <input name="hours" type="number" min="0.1" step="0.1" value="1" />
+          </label>
+          <button type="submit" class="btn btn-primary">試算報價</button>
+        </div>
+
+        <input type="hidden" name="specs" id="quoteSpecs" />
+        <p class="gpu-preview" id="quoteGpuPreview">尚未選擇顯卡</p>
+      </form>
+
+      <div class="quote-out" id="quoteOut" role="status">選擇顯卡後按「試算報價」，或調整參數後自動更新。</div>
+    </section>
+
+    <!-- 掛機／租用 -->
+    <section id="join" class="section">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Trade</p>
+          <h2>掛機／發需求</h2>
+          <p class="section-desc">須先登入。掛機時建議填主機名稱並同意指紋，避免重複綁定。</p>
+        </div>
+      </div>
+
+      <div class="forms">
+        <form id="join-host" class="card-form">
+          <header class="card-head">
+            <h3>供給方掛機</h3>
+            <p>上架後可在下方逐台調整釋出 %</p>
+          </header>
+          <label>顯示暱稱<input name="name" required /></label>
+          <div class="gpu-picker" data-gpu-picker="host">
+            <label>品牌
+              <select name="gpu_brand" required>
+                <option value="">先選 N 卡／A 卡</option>
+                <option value="nvidia">N 卡（NVIDIA）</option>
+                <option value="amd">A 卡（AMD）</option>
+              </select>
+            </label>
+            <label>系列
+              <select name="gpu_series" required disabled>
+                <option value="">先選系列</option>
+              </select>
+            </label>
+            <label>型號
+              <select name="gpu_model" required disabled>
+                <option value="">先選型號</option>
+              </select>
+            </label>
+            <label>後綴（SUPER／Ti／XT…）
+              <select name="gpu_suffix" disabled>
+                <option value="">先選後綴</option>
+              </select>
+            </label>
+          </div>
+          <label>VRAM（GB）<input name="vram_gb" type="number" min="4" max="128" step="1" value="12" required /></label>
+          <input type="hidden" name="specs" id="hostSpecs" />
+          <p class="gpu-preview" id="hostGpuPreview">尚未選擇顯卡</p>
+          <label>補充說明（可空）<textarea name="note" rows="2" placeholder="例：每晚 22:00–08:00 可租"></textarea></label>
+          <label>自訂期望時薪（可空）<input name="rate" type="number" min="0" step="1" /></label>
+          <label class="slider-field">釋出算力 %（必填 1–100）
+            <div class="slider-row">
+              <input name="release_percent_range" type="range" min="1" max="100" step="1" value="100" data-sync="release_percent" />
+              <input name="release_percent" type="number" min="1" max="100" step="1" value="100" required />
+              <span class="unit">%</span>
+            </div>
+          </label>
+          <details class="fp-details">
+            <summary>主機指紋（建議填）</summary>
+            <label>主機名稱<input name="hostname" placeholder="例：desk-pc" /></label>
+            <label>MAC 雜湊（可空）<input name="mac_hash" /></label>
+            <label>磁碟序號（可空）<input name="disk_serial" /></label>
+            <label class="check-row">
+              <input name="consent_fingerprint" type="checkbox" />
+              <span>同意收集軟體指紋防重複綁定</span>
+            </label>
+          </details>
+          <button type="submit" class="btn btn-primary btn-block">掛機上架</button>
+          <p class="form-msg" hidden></p>
+        </form>
+
+        <form id="join-rent" class="card-form">
+          <header class="card-head">
+            <h3>需求方租用</h3>
+            <p>描述任務與預算，方便媒合</p>
+          </header>
+          <label>暱稱<input name="name" required /></label>
+          <label>需求<textarea name="need" required rows="5" placeholder="例：微調 7B 模型，需要約 24GB VRAM"></textarea></label>
+          <label>預算上限（TWD）<input name="budget" type="number" min="0" step="1" /></label>
+          <button type="submit" class="btn btn-secondary btn-block">送出需求</button>
+          <p class="form-msg" hidden></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- 釋出 % -->
+    <section id="release" class="section section-panel">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Capacity</p>
+          <h2>調整釋出 %</h2>
+          <p class="section-desc">每台主機可獨立設定；只影響之後新單，進行中／已成交不受影響。</p>
+        </div>
+      </div>
+      <div id="releaseMachineList" class="release-list">
+        <p class="hint">登入並掛機後，這裡會列出每台主機。</p>
+      </div>
+      <form id="releaseForm" class="quote-form release-all card-surface">
+        <label class="slider-field">全部套用（多機一次改）
+          <div class="slider-row">
+            <input name="release_percent_range" type="range" min="1" max="100" step="1" value="50" data-sync="release_percent" />
+            <input name="release_percent" type="number" min="1" max="100" step="1" value="50" required />
+            <span class="unit">%</span>
+          </div>
         </label>
-        <button type="submit">掛機上架</button>
+        <label class="check-row">
+          <input name="apply_all" type="checkbox" />
+          <span>確認套用到全部主機</span>
+        </label>
+        <button type="submit" class="btn btn-secondary">全部更新</button>
+      </form>
+      <p class="form-msg" id="releaseMsg" hidden></p>
+    </section>
+
+    <!-- 市場列表 -->
+    <section id="market" class="section">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Marketplace</p>
+          <h2>目前掛機</h2>
+          <p class="section-desc">可依型號關鍵字篩選，並依單價或 VRAM 排序。</p>
+        </div>
+        <div class="market-tools">
+          <label class="sr-only" for="hostFilter">篩選</label>
+          <input id="hostFilter" type="search" placeholder="篩選型號／暱稱…" />
+          <label class="sr-only" for="hostSort">排序</label>
+          <select id="hostSort">
+            <option value="spot-asc">單價：低→高</option>
+            <option value="spot-desc">單價：高→低</option>
+            <option value="vram-desc">VRAM：高→低</option>
+            <option value="release-desc">釋出 %：高→低</option>
+          </select>
+        </div>
+      </div>
+      <div id="hostList" class="host-grid" aria-live="polite">
+        <p class="hint">載入中…</p>
+      </div>
+    </section>
+
+    <!-- 規則 -->
+    <section id="rules" class="section section-panel">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">Rules</p>
+          <h2>規則摘要</h2>
+          <p class="section-desc">重點規則一次看懂；細節以實際成交與工單為準。</p>
+        </div>
+      </div>
+
+      <div class="rules-grid">
+        <article class="rule-card">
+          <h3>手續費</h3>
+          <p>成交抽 <strong>1.5%</strong>。試用期內可免收，上限
+            <strong id="ruleTrialDeals">3</strong> 筆或
+            <strong id="ruleTrialAmt">2000</strong> TWD（同一 Email 終身一次）。</p>
+        </article>
+        <article class="rule-card">
+          <h3>提領</h3>
+          <p>門檻預設 <strong id="minW">500</strong> TWD；試用期內不可提領。
+            <span id="payoutRule">收款未打通時只記帳、不可提領。</span></p>
+        </article>
+        <article class="rule-card">
+          <h3>掛機與安全</h3>
+          <p>掛機／發需求須先登入；釋出 % 必填。平台只媒合記帳，不擔保品質與付款；禁止挖礦／違法用途。</p>
+        </article>
+        <article class="rule-card">
+          <h3>爭議</h3>
+          <p>爭議由人工裁決；嚴重違規永久停權。可於下方送出工單。</p>
+        </article>
+      </div>
+
+      <form id="disputeForm" class="card-form dispute-form">
+        <header class="card-head">
+          <h3>回報爭議</h3>
+          <p>請盡量附上成交 ID，方便人工審核</p>
+        </header>
+        <label>角色
+          <select name="role">
+            <option value="host">供給方</option>
+            <option value="renter">需求方</option>
+            <option value="other">其他</option>
+          </select>
+        </label>
+        <label>成交 ID（可空）<input name="deal_id" /></label>
+        <label>說明<textarea name="reason" required rows="3"></textarea></label>
+        <button type="submit" class="btn btn-secondary btn-block">送出工單</button>
         <p class="form-msg" hidden></p>
       </form>
-      <form id="join-rent" class="card-form">
-        <h3>需求方</h3>
-        <label>暱稱<input name="name" required /></label>
-        <label>需求<textarea name="need" required rows="3"></textarea></label>
-        <label>預算上限<input name="budget" type="number" min="0" step="1" /></label>
-        <button type="submit">送出需求</button>
-        <p class="form-msg" hidden></p>
-      </form>
-    </div>
-  </section>
-
-  <section class="section alt" id="release">
-    <h2>調整釋出 %</h2>
-    <p class="hint">只影響之後新單；進行中／已成交不受影響。</p>
-    <form id="releaseForm" class="quote-form">
-      <label>新的釋出 %<input name="release_percent" type="number" min="1" max="100" step="1" value="50" required /></label>
-      <button type="submit">更新</button>
-    </form>
-    <p class="form-msg" id="releaseMsg" hidden></p>
-  </section>
-
-  <section class="section stats-sec">
-    <h2>盤勢</h2>
-    <div class="stats" id="stats">
-      <div><span>供給</span><strong id="hostCount">—</strong></div>
-      <div><span>需求</span><strong id="rentCount">—</strong></div>
-      <div><span>累計手續費</span><strong id="feeTotal">—</strong></div>
-      <div><span>未結爭議</span><strong id="openDisputes">—</strong></div>
-    </div>
-    <h3 style="margin-top:1.5rem">目前掛機</h3>
-    <div id="hostList" class="hint">載入中…</div>
-  </section>
-
-  <section class="section">
-    <h2>規則與條款</h2>
-    <ul class="bullets">
-      <li>平台費 <strong>1.5%</strong>；試用免收上限 3 筆或 2000 TWD；同一 Email 試用終身一次。</li>
-      <li>掛機／發需求須先登入；釋出 % 必填。</li>
-      <li>可提領門檻預設 <strong id="minW">500</strong> TWD；試用期內不可提領。</li>
-      <li id="payoutRule">收款未打通時只記帳、不可提領。</li>
-      <li>平台只媒合記帳，不擔保品質與付款；禁止挖礦／違法用途。</li>
-      <li>爭議由人工裁決；嚴重違規永久停權。</li>
-    </ul>
-    <form id="disputeForm" class="card-form" style="max-width:28rem;margin-top:1.25rem">
-      <h3>回報爭議</h3>
-      <label>角色
-        <select name="role">
-          <option value="host">供給方</option>
-          <option value="renter">需求方</option>
-          <option value="other">其他</option>
-        </select>
-      </label>
-      <label>成交 ID（可空）<input name="deal_id" /></label>
-      <label>說明<textarea name="reason" required rows="3"></textarea></label>
-      <button type="submit">送出工單</button>
-      <p class="form-msg" hidden></p>
-    </form>
-  </section>
+    </section>
+  </main>
 
   <footer class="foot">
-    <p>ComputeGate 客戶頁 · 平台主控在 <a href="/" style="color:inherit">EarnBot 主控台</a></p>
+    <div class="foot-inner">
+      <div>
+        <strong class="brand-name">ComputeGate</strong>
+        <p>客戶頁 · 算力媒合與記帳</p>
+      </div>
+      <p>平台主控在 <a href="/">EarnBot 主控台</a></p>
+    </div>
   </footer>
-  <script src="/market/static/app.js?v=20260806i"></script>
+
+  <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+  <script src="/market/static/app.js?v=20260807c"></script>
 </body>
 </html>

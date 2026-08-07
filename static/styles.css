@@ -94,7 +94,7 @@ body {
 }
 .card-form h3 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 1.5rem; }
 .card-form label { display: grid; gap: .3rem; font-size: .85rem; color: var(--muted); }
-.card-form input, .card-form textarea {
+.card-form input, .card-form textarea, .card-form select {
   width: 100%; border-radius: 10px; border: 1px solid var(--line);
   background: #0b1017; color: var(--ink); padding: .55rem .7rem; font: inherit;
 }
@@ -117,18 +117,71 @@ body {
 .ticker { color: var(--muted); font-size: .9rem; }
 .ticker strong { color: var(--accent); }
 .hint { color: var(--muted); font-size: .92rem; }
+.wallet-panel {
+  margin-top: 1.25rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.wallet-panel h3 {
+  margin: 0 0 .4rem;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.45rem;
+}
+.wallet-grid {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: 1fr 1fr;
+  margin-top: .75rem;
+}
+.wallet-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: .85rem 1rem;
+  background: #0b1017;
+}
+.wallet-card strong { display: block; font-size: 1.35rem; color: var(--accent); margin: .25rem 0; }
+.wallet-card ul { margin: .4rem 0 0; padding-left: 1.1rem; color: var(--muted); font-size: .85rem; }
+.wallet-card .tag {
+  display: inline-block;
+  margin-top: .35rem;
+  font-size: .78rem;
+  color: var(--muted);
+}
+.wallet-card .tag.ok { color: #6fbf8a; }
+.wallet-card .tag.block { color: #e0a070; }
+#withdrawForm button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+@media (max-width: 800px) {
+  .wallet-grid { grid-template-columns: 1fr; }
+}
 .quote-form {
-  display: grid; gap: .6rem; grid-template-columns: 2fr 1fr auto;
+  display: grid; gap: .6rem; grid-template-columns: repeat(4, 1fr);
   align-items: end; margin: 1rem 0;
 }
+.quote-form .gpu-picker {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: .6rem;
+  grid-template-columns: repeat(4, 1fr);
+}
 .quote-form label { display: grid; gap: .3rem; font-size: .85rem; color: var(--muted); }
-.quote-form input {
+.quote-form input, .quote-form select {
   border-radius: 10px; border: 1px solid var(--line);
   background: #0b1017; color: var(--ink); padding: .55rem .7rem; font: inherit;
 }
 .quote-form button {
   border: none; border-radius: 10px; padding: .7rem 1rem;
   background: var(--accent); color: #1a0d04; font-weight: 700; cursor: pointer;
+}
+.card-form .gpu-picker {
+  display: grid;
+  gap: .65rem;
+  grid-template-columns: 1fr 1fr;
 }
 .quote-out {
   border: 1px solid var(--line); border-radius: 12px; padding: 1rem;
@@ -137,6 +190,6 @@ body {
 .foot { padding: 2rem 1.5rem 3rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); }
 @media (max-width: 800px) {
   .steps, .forms, .stats { grid-template-columns: 1fr; }
-  .quote-form { grid-template-columns: 1fr; }
+  .quote-form, .quote-form .gpu-picker, .card-form .gpu-picker { grid-template-columns: 1fr; }
 }
 

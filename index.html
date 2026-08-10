@@ -8,13 +8,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/market/static/styles.css?v=20260807c" />
+  <link rel="stylesheet" href="/market/static/styles.css?v=20260807g" />
 </head>
 <body>
   <!-- 背景氛圍：柔和光暈，不搶內容 -->
   <div class="bg-glow" aria-hidden="true"></div>
   <div class="bg-grid" aria-hidden="true"></div>
 
+  <!-- page-frame：內容欄 1200px，避免中間一條過窄 -->
+  <div class="page-frame">
   <header class="nav">
     <a class="brand" href="#top" aria-label="ComputeGate 首頁">
       <span class="brand-mark" aria-hidden="true"></span>
@@ -35,7 +37,7 @@
         <span class="theme-icon theme-icon-dark" aria-hidden="true">☾</span>
         <span class="theme-icon theme-icon-light" aria-hidden="true">☀</span>
       </button>
-      <a class="btn btn-ghost btn-sm" href="#account" id="navAuthBtn">登入／註冊</a>
+      <a class="btn btn-ghost btn-sm" href="/market/auth" id="navAuthBtn">登入／註冊</a>
       <span class="nav-auth-chip" id="navAuth">未登入</span>
     </div>
   </header>
@@ -44,7 +46,7 @@
     目前收款管道尚未完全打通：所有手續費與餘額<strong>僅記帳，暫不可提領</strong>。打通後會開放。
   </div>
 
-  <main id="top">
+  <main id="top" class="page-shell">
     <!-- Hero：品牌為主視覺錨點 -->
     <section class="hero">
       <div class="hero-copy">
@@ -128,81 +130,60 @@
       </div>
     </section>
 
-    <!-- 帳號 -->
+    <!-- 帳號：未登入只顯示入口；已登入顯示錢包 -->
     <section id="account" class="section">
       <div class="section-head">
         <div>
           <p class="section-kicker">Account</p>
           <h2>帳號與錢包</h2>
-          <p class="section-desc">一帳可綁多機；一機指紋同時只能一帳。解綁後換帳冷卻 24 小時。</p>
+          <p class="section-desc">登入後可掛機、租用與申請提領。一帳可綁多機。</p>
         </div>
         <p class="status-chip" id="authStatus">尚未登入</p>
       </div>
 
-      <div class="forms forms-3">
-        <form id="authRegisterForm" class="card-form">
-          <header class="card-head">
-            <h3>註冊</h3>
-            <p>建立帳號後需驗證碼</p>
-          </header>
-          <label>Email<input name="email" type="email" required autocomplete="email" /></label>
-          <label>密碼（≥6）<input name="password" type="password" required minlength="6" autocomplete="new-password" /></label>
-          <label>暱稱<input name="display_name" autocomplete="nickname" /></label>
-          <button type="submit" class="btn btn-primary btn-block">註冊</button>
-          <p class="form-msg" hidden></p>
-        </form>
-
-        <form id="authVerifyForm" class="card-form">
-          <header class="card-head">
-            <h3>驗證碼</h3>
-            <p>本機模式：註冊成功後會顯示碼</p>
-          </header>
-          <label>Email<input name="email" type="email" required autocomplete="email" /></label>
-          <label>6 位碼<input name="code" required inputmode="numeric" maxlength="8" /></label>
-          <button type="submit" class="btn btn-secondary btn-block">驗證</button>
-          <p class="form-msg" hidden></p>
-        </form>
-
-        <form id="authLoginForm" class="card-form">
-          <header class="card-head">
-            <h3>登入</h3>
-            <p>登入後可掛機、租用與提領申請</p>
-          </header>
-          <label>Email<input name="email" type="email" required autocomplete="username" /></label>
-          <label>密碼<input name="password" type="password" required autocomplete="current-password" /></label>
-          <button type="submit" class="btn btn-primary btn-block">登入</button>
-          <button type="button" id="btnLogout" class="btn btn-ghost btn-block">登出</button>
-          <p class="form-msg" hidden></p>
-        </form>
+      <div id="authGate" class="auth-gate card-surface">
+        <div>
+          <h3>需要先登入</h3>
+          <p class="hint">註冊／驗證／登入已移到獨立頁面，主畫面不再堆疊三組表單。</p>
+        </div>
+        <div class="auth-gate-actions">
+          <a class="btn btn-primary" href="/market/auth">前往登入</a>
+          <a class="btn btn-secondary" href="/market/auth?tab=register">建立帳號</a>
+        </div>
       </div>
 
-      <div id="machineTable" class="machine-table"></div>
-
-      <div id="walletPanel" class="wallet-panel" hidden>
-        <div class="section-head compact">
-          <div>
-            <h3>我的餘額與提領</h3>
-            <p class="hint" id="walletStatus"></p>
-          </div>
+      <div id="accountLoggedIn" hidden>
+        <div class="account-toolbar">
+          <button type="button" id="btnLogout" class="btn btn-ghost btn-sm">登出</button>
+          <a class="btn btn-ghost btn-sm" href="/market/auth">帳號頁</a>
         </div>
-        <div class="wallet-grid" id="walletGrid"></div>
-        <div class="wallet-actions">
-          <form id="withdrawForm" class="card-form">
-            <header class="card-head">
-              <h3>申請提領</h3>
-              <p>試用期內不可提領；達門檻且收款開啟才可送出</p>
-            </header>
-            <label>身份
-              <select name="role">
-                <option value="host">供給方餘額</option>
-                <option value="renter">需求方餘額</option>
-              </select>
-            </label>
-            <label>金額（TWD）<input name="amount" type="number" min="1" step="1" required /></label>
-            <button type="submit" id="withdrawBtn" class="btn btn-primary btn-block">送出申請</button>
-            <p class="form-msg" id="withdrawMsg" hidden></p>
-          </form>
-          <div id="withdrawHistory" class="history-box"></div>
+        <div id="machineTable" class="machine-table"></div>
+        <div id="walletPanel" class="wallet-panel" hidden>
+          <div class="section-head compact">
+            <div>
+              <h3>我的餘額與提領</h3>
+              <p class="hint" id="walletStatus"></p>
+            </div>
+          </div>
+          <div class="wallet-grid" id="walletGrid"></div>
+          <div class="wallet-actions">
+            <form id="withdrawForm" class="card-form">
+              <header class="card-head">
+                <h3>申請提領</h3>
+                <p>試用期內不可提領；達門檻且收款開啟才可送出</p>
+              </header>
+              <label>身份
+                <select name="role">
+                  <option value="host">供給方餘額</option>
+                  <option value="renter">需求方餘額</option>
+                </select>
+              </label>
+              <label>金額（TWD）<input name="amount" type="number" min="1" step="1" required /></label>
+              <button type="submit" id="withdrawBtn" class="btn btn-primary btn-block">送出申請</button>
+              <p class="form-msg" id="withdrawMsg" hidden></p>
+            </form>
+            <div id="withdrawHistory" class="history-box"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -463,8 +444,9 @@
       <p>平台主控在 <a href="/">EarnBot 主控台</a></p>
     </div>
   </footer>
+  </div><!-- /.page-frame -->
 
   <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
-  <script src="/market/static/app.js?v=20260807c"></script>
+  <script src="/market/static/app.js?v=20260807g"></script>
 </body>
 </html>

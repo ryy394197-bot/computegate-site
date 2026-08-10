@@ -363,8 +363,8 @@ function applyTheme(theme) {
 }
 (function initTheme() {
   const saved = localStorage.getItem(THEME_KEY);
-  const preferLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-  applyTheme(saved || (preferLight ? "light" : "dark"));
+  // 產品預設深色（SaaS 科技感）；僅在使用者曾手動切換時沿用
+  applyTheme(saved || "dark");
 })();
 document.getElementById("themeToggle")?.addEventListener("click", () => {
   const cur = document.documentElement.getAttribute("data-theme") || "dark";
@@ -470,8 +470,12 @@ function renderWallet(wallet) {
     const authBtn = document.getElementById("navAuthBtn");
     if (authBtn) {
       authBtn.textContent = "登入／註冊";
-      authBtn.href = "#account";
+      authBtn.href = "/market/auth";
     }
+    const gate = document.getElementById("authGate");
+    const logged = document.getElementById("accountLoggedIn");
+    if (gate) gate.hidden = false;
+    if (logged) logged.hidden = true;
     return;
   }
   panel.hidden = false;
@@ -529,6 +533,11 @@ function renderWallet(wallet) {
     authBtn.textContent = "帳戶";
     authBtn.href = "#account";
   }
+
+  const gate = document.getElementById("authGate");
+  const logged = document.getElementById("accountLoggedIn");
+  if (gate) gate.hidden = true;
+  if (logged) logged.hidden = false;
 
   if (hist) {
     const rows = wallet.withdrawals || [];
@@ -635,20 +644,41 @@ async function refreshAuth() {
   const status = document.getElementById("authStatus");
   const nav = document.getElementById("navAuth");
   const table = document.getElementById("machineTable");
+  const gate = document.getElementById("authGate");
+  const logged = document.getElementById("accountLoggedIn");
   const token = getToken();
-  if (!token) {
+  const onAuthPage = !!document.body?.classList?.contains("auth-page");
+
+  function showLoggedOut() {
     if (status) status.textContent = "尚未登入 — 請先註冊／驗證／登入";
     if (nav) nav.textContent = "未登入";
     if (table) table.textContent = "";
     renderWallet(null);
     renderReleaseMachines([], "TWD");
+    const authBtn = document.getElementById("navAuthBtn");
+    if (authBtn) {
+      authBtn.textContent = "登入／註冊";
+      authBtn.href = "/market/auth";
+    }
+    if (gate) gate.hidden = false;
+    if (logged) logged.hidden = true;
+  }
+
+  if (!token) {
+    showLoggedOut();
     return null;
   }
   try {
     const res = await api(`/api/market/auth/me?token=${encodeURIComponent(token)}`);
     const u = res.user;
+    if (onAuthPage) {
+      location.replace("/market/");
+      return u;
+    }
     if (status) status.textContent = `已登入：${u.email}（${u.display_name}）· 已綁 ${u.machine_count} 台`;
     if (nav) nav.textContent = u.email;
+    if (gate) gate.hidden = true;
+    if (logged) logged.hidden = false;
     if (table) {
       if (!(u.machines || []).length) {
         table.textContent = "尚未綁定主機指紋（掛機時填主機名並勾選同意即可綁定）。";
@@ -678,40 +708,43 @@ async function refreshAuth() {
     return u;
   } catch (_) {
     setToken("");
+    showLoggedOut();
     if (status) status.textContent = "Session 失效，請重新登入";
-    if (nav) nav.textContent = "未登入";
-    renderWallet(null);
-    renderReleaseMachines([], "TWD");
     return null;
   }
 }
 
 async function refreshStats() {
+  if (document.body.classList.contains("auth-page")) return;
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
   try {
     const s = await api("/api/market/stats");
     window.__cgUnbindHours = s.auth?.unbind_cooldown_hours || 24;
-    document.getElementById("hostCount").textContent = s.hosts;
-    document.getElementById("rentCount").textContent = s.renters;
-    document.getElementById("feeTotal").textContent = `${s.fee_total} ${s.currency || "TWD"}`;
-    document.getElementById("feePct").textContent = `${s.fee_percent}%`;
-    document.getElementById("idx").textContent = s.index_points;
-    document.getElementById("spot").textContent = `${s.spot_twd_per_hour} ${s.currency}/時`;
-    document.getElementById("minW").textContent = s.min_withdraw_twd;
-    document.getElementById("formula").textContent = s.formula || "";
-    document.getElementById("trialDeals").textContent = s.trial_max_free_deals ?? 3;
-    document.getElementById("trialAmt").textContent = s.trial_max_free_amount ?? 2000;
-    document.getElementById("openDisputes").textContent = s.open_disputes ?? 0;
+    setText("hostCount", s.hosts);
+    setText("rentCount", s.renters);
+    setText("feeTotal", `${s.fee_total} ${s.currency || "TWD"}`);
+    setText("feePct", `${s.fee_percent}%`);
+    setText("idx", s.index_points);
+    setText("spot", `${s.spot_twd_per_hour} ${s.currency}/時`);
+    setText("minW", s.min_withdraw_twd);
+    setText("formula", s.formula || "");
+    setText("trialDeals", s.trial_max_free_deals ?? 3);
+    setText("trialAmt", s.trial_max_free_amount ?? 2000);
+    setText("openDisputes", s.open_disputes ?? 0);
 
     const badge = document.getElementById("payoutBadge");
     const rule = document.getElementById("payoutRule");
     const banner = document.getElementById("payoutBanner");
     if (s.payout_ready) {
-      badge.textContent = "可申請提領";
-      rule.textContent = "收款管道已開啟：達門檻且非試用期可申請提領。";
+      if (badge) badge.textContent = "可申請提領";
+      if (rule) rule.textContent = "收款管道已開啟：達門檻且非試用期可申請提領。";
       if (banner) banner.hidden = true;
     } else {
-      badge.textContent = "只記帳不提領";
-      rule.textContent = "目前收款管道尚未完全打通：僅記帳，暫不可提領。";
+      if (badge) badge.textContent = "只記帳不提領";
+      if (rule) rule.textContent = "目前收款管道尚未完全打通：僅記帳，暫不可提領。";
       if (banner) {
         banner.hidden = false;
         banner.innerHTML = "目前收款管道尚未完全打通：所有手續費與餘額<strong>僅記帳，暫不可提領</strong>。打通後會開放。";
@@ -719,12 +752,14 @@ async function refreshStats() {
     }
 
     const refLine = document.getElementById("refLine");
-    if (s.market_ref_twd_per_hour) {
-      refLine.hidden = false;
-      const pct = (((s.spot_twd_per_hour - s.market_ref_twd_per_hour) / s.market_ref_twd_per_hour) * 100).toFixed(1);
-      refLine.textContent = `市場參考價 ${s.market_ref_twd_per_hour} TWD/時 · 現貨差 ${pct}%`;
-    } else {
-      refLine.hidden = true;
+    if (refLine) {
+      if (s.market_ref_twd_per_hour) {
+        refLine.hidden = false;
+        const pct = (((s.spot_twd_per_hour - s.market_ref_twd_per_hour) / s.market_ref_twd_per_hour) * 100).toFixed(1);
+        refLine.textContent = `市場參考價 ${s.market_ref_twd_per_hour} TWD/時 · 現貨差 ${pct}%`;
+      } else {
+        refLine.hidden = true;
+      }
     }
 
     window.__cgHostRows = s.host_list || [];
@@ -761,10 +796,10 @@ async function refreshStats() {
     if (ruleDeals) ruleDeals.textContent = s.trial_max_free_deals ?? 3;
     if (ruleAmt) ruleAmt.textContent = s.trial_max_free_amount ?? 2000;
   } catch (_) {
-    document.getElementById("hostCount").textContent = "離線";
-    document.getElementById("rentCount").textContent = "—";
-    document.getElementById("idx").textContent = "—";
-    document.getElementById("spot").textContent = "離線";
+    setText("hostCount", "離線");
+    setText("rentCount", "—");
+    setText("idx", "—");
+    setText("spot", "離線");
   }
 }
 
@@ -801,7 +836,7 @@ function renderHostMarket() {
       `<div class="host-meta">` +
       `<span>VRAM ${h.effective_vram_gb ?? h.vram_gb ?? "—"}GB</span>` +
       `<span>釋出 ${h.release_percent}%</span>` +
-      `<span>可租</span>` +
+      `<span>狀態：可租</span>` +
       `</div>` +
       `<div class="host-price">${h.spot_twd_per_hour ?? "—"} <small>TWD／時</small></div>` +
       `</article>`
@@ -812,7 +847,7 @@ function renderHostMarket() {
 document.getElementById("hostFilter")?.addEventListener("input", renderHostMarket);
 document.getElementById("hostSort")?.addEventListener("change", renderHostMarket);
 
-document.getElementById("authRegisterForm").addEventListener("submit", async (e) => {
+document.getElementById("authRegisterForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const fd = new FormData(form);
@@ -832,6 +867,11 @@ document.getElementById("authRegisterForm").addEventListener("submit", async (e)
         await navigator.clipboard.writeText(code);
         setFormMsg(form, `已註冊；驗證碼 ${code}（已複製到剪貼簿）`, true);
       } catch (_) {}
+      const verifyEmail = document.querySelector('#authVerifyForm [name="email"]');
+      const verifyCode = document.querySelector('#authVerifyForm [name="code"]');
+      if (verifyEmail) verifyEmail.value = String(fd.get("email") || "");
+      if (verifyCode) verifyCode.value = code;
+      document.querySelector('.auth-tab[data-tab="verify"]')?.click();
     }
     form.reset();
   } catch (err) {
@@ -839,7 +879,7 @@ document.getElementById("authRegisterForm").addEventListener("submit", async (e)
   }
 });
 
-document.getElementById("authVerifyForm").addEventListener("submit", async (e) => {
+document.getElementById("authVerifyForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const fd = new FormData(form);
@@ -849,13 +889,17 @@ document.getElementById("authVerifyForm").addEventListener("submit", async (e) =
       body: JSON.stringify({ email: fd.get("email"), code: fd.get("code") }),
     });
     setFormMsg(form, r.message || "驗證成功，可以登入", true);
+    toast("驗證成功，請登入", true);
+    document.querySelector('.auth-tab[data-tab="login"]')?.click();
+    const loginEmail = document.querySelector('#authLoginForm [name="email"]');
+    if (loginEmail) loginEmail.value = String(fd.get("email") || "");
     form.reset();
   } catch (err) {
     setFormMsg(form, err.message, false);
   }
 });
 
-document.getElementById("authLoginForm").addEventListener("submit", async (e) => {
+document.getElementById("authLoginForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const fd = new FormData(form);
@@ -868,13 +912,17 @@ document.getElementById("authLoginForm").addEventListener("submit", async (e) =>
     setFormMsg(form, "登入成功", true);
     toast("登入成功", true);
     form.reset();
+    if (document.body.classList.contains("auth-page")) {
+      location.href = "/market/";
+      return;
+    }
     await refreshAuth();
   } catch (err) {
     setFormMsg(form, err.message, false);
   }
 });
 
-document.getElementById("btnLogout").onclick = async () => {
+document.getElementById("btnLogout")?.addEventListener("click", async () => {
   const token = getToken();
   if (token) {
     try {
@@ -883,9 +931,9 @@ document.getElementById("btnLogout").onclick = async () => {
   }
   setToken("");
   await refreshAuth();
-};
+});
 
-document.getElementById("quoteForm").addEventListener("submit", async (e) => {
+document.getElementById("quoteForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   await runQuote(false);
 });
@@ -947,7 +995,7 @@ function scheduleQuote() {
   });
 });
 
-document.getElementById("join-host").addEventListener("submit", async (e) => {
+document.getElementById("join-host")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const token = getToken();
@@ -1018,7 +1066,7 @@ document.getElementById("join-host").addEventListener("submit", async (e) => {
   }
 });
 
-document.getElementById("join-rent").addEventListener("submit", async (e) => {
+document.getElementById("join-rent")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const token = getToken();
@@ -1053,7 +1101,7 @@ document.getElementById("join-rent").addEventListener("submit", async (e) => {
   }
 });
 
-document.getElementById("releaseForm").addEventListener("submit", async (e) => {
+document.getElementById("releaseForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const msg = document.getElementById("releaseMsg");
   const token = getToken();
@@ -1104,7 +1152,7 @@ document.getElementById("releaseForm").addEventListener("submit", async (e) => {
   }
 });
 
-document.getElementById("withdrawForm").addEventListener("submit", async (e) => {
+document.getElementById("withdrawForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const msg = document.getElementById("withdrawMsg");
@@ -1140,7 +1188,7 @@ document.getElementById("withdrawForm").addEventListener("submit", async (e) => 
   }
 });
 
-document.getElementById("disputeForm").addEventListener("submit", async (e) => {
+document.getElementById("disputeForm")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
   const token = getToken();

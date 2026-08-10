@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>登入／註冊 — ComputeGate</title>
+  <meta name="description" content="ComputeGate 帳號登入、註冊與 Email 驗證。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/market/static/styles.css?v=20260807g" />
+</head>
+<body class="auth-page">
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <div class="page-frame auth-frame">
+    <header class="nav">
+      <a class="brand" href="/market/" aria-label="回到 ComputeGate">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">ComputeGate</span>
+      </a>
+      <div class="nav-actions">
+        <button type="button" class="icon-btn" id="themeToggle" title="切換深淺色" aria-label="切換深淺色">
+          <span class="theme-icon theme-icon-dark" aria-hidden="true">☾</span>
+          <span class="theme-icon theme-icon-light" aria-hidden="true">☀</span>
+        </button>
+        <a class="btn btn-ghost btn-sm" href="/market/">回市場</a>
+      </div>
+    </header>
+
+    <main class="auth-shell">
+      <div class="auth-card">
+        <header class="auth-hero">
+          <p class="section-kicker">Account</p>
+          <h1>登入 ComputeGate</h1>
+          <p class="hint">掛機、租用、提領申請都需要先登入。一帳可綁多機。</p>
+        </header>
+
+        <div class="auth-tabs" role="tablist" aria-label="帳號操作">
+          <button type="button" class="auth-tab is-active" role="tab" aria-selected="true" data-tab="login">登入</button>
+          <button type="button" class="auth-tab" role="tab" aria-selected="false" data-tab="register">註冊</button>
+          <button type="button" class="auth-tab" role="tab" aria-selected="false" data-tab="verify">驗證碼</button>
+        </div>
+
+        <div class="auth-panels">
+          <form id="authLoginForm" class="card-form auth-panel is-active" data-panel="login">
+            <label>Email<input name="email" type="email" required autocomplete="username" /></label>
+            <label>密碼<input name="password" type="password" required autocomplete="current-password" /></label>
+            <button type="submit" class="btn btn-primary btn-block">登入</button>
+            <p class="form-msg" hidden></p>
+            <p class="hint auth-switch">還沒有帳號？<button type="button" class="linkish" data-goto="register">去註冊</button></p>
+          </form>
+
+          <form id="authRegisterForm" class="card-form auth-panel" data-panel="register" hidden>
+            <label>Email<input name="email" type="email" required autocomplete="email" /></label>
+            <label>密碼（≥6）<input name="password" type="password" required minlength="6" autocomplete="new-password" /></label>
+            <label>暱稱<input name="display_name" autocomplete="nickname" /></label>
+            <button type="submit" class="btn btn-primary btn-block">註冊</button>
+            <p class="form-msg" hidden></p>
+            <p class="hint auth-switch">註冊後請到「驗證碼」完成驗證，再回來登入。</p>
+          </form>
+
+          <form id="authVerifyForm" class="card-form auth-panel" data-panel="verify" hidden>
+            <p class="hint">本機模式：註冊成功後會顯示驗證碼（可複製）。</p>
+            <label>Email<input name="email" type="email" required autocomplete="email" /></label>
+            <label>6 位碼<input name="code" required inputmode="numeric" maxlength="8" autocomplete="one-time-code" /></label>
+            <button type="submit" class="btn btn-secondary btn-block">驗證</button>
+            <p class="form-msg" hidden></p>
+            <p class="hint auth-switch">驗證完成？<button type="button" class="linkish" data-goto="login">去登入</button></p>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+  <script src="/market/static/app.js?v=20260807g"></script>
+  <script>
+    (function () {
+      const tabs = document.querySelectorAll(".auth-tab");
+      const panels = document.querySelectorAll(".auth-panel");
+      function showTab(name) {
+        tabs.forEach((t) => {
+          const on = t.dataset.tab === name;
+          t.classList.toggle("is-active", on);
+          t.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        panels.forEach((p) => {
+          const on = p.dataset.panel === name;
+          p.classList.toggle("is-active", on);
+          p.hidden = !on;
+        });
+        const params = new URLSearchParams(location.search);
+        params.set("tab", name);
+        history.replaceState(null, "", `${location.pathname}?${params}`);
+      }
+      tabs.forEach((t) => t.addEventListener("click", () => showTab(t.dataset.tab)));
+      document.querySelectorAll("[data-goto]").forEach((btn) => {
+        btn.addEventListener("click", () => showTab(btn.dataset.goto));
+      });
+      const initial = new URLSearchParams(location.search).get("tab") || "login";
+      showTab(["login", "register", "verify"].includes(initial) ? initial : "login");
+
+      // 已登入則回市場
+      const token = localStorage.getItem("computegate_token");
+      if (token) {
+        fetch(`/api/market/auth/me?token=${encodeURIComponent(token)}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => {
+            if (data?.user) location.replace("/market/");
+          })
+          .catch(() => {});
+      }
+    })();
+  </script>
+</body>
+</html>

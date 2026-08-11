@@ -659,7 +659,10 @@ async function refreshAuth() {
     if (authBtn) {
       authBtn.textContent = "登入／註冊";
       authBtn.href = "/market/auth";
+      authBtn.hidden = false;
     }
+    const logoutBtn = document.getElementById("navLogoutBtn");
+    if (logoutBtn) logoutBtn.hidden = true;
     if (gate) gate.hidden = false;
     if (logged) logged.hidden = true;
   }
@@ -677,6 +680,14 @@ async function refreshAuth() {
     }
     if (status) status.textContent = `已登入：${u.email}（${u.display_name}）· 已綁 ${u.machine_count} 台`;
     if (nav) nav.textContent = u.email;
+    const authBtn = document.getElementById("navAuthBtn");
+    if (authBtn) {
+      authBtn.textContent = "帳戶";
+      authBtn.href = "#account";
+      authBtn.hidden = false;
+    }
+    const logoutBtn = document.getElementById("navLogoutBtn");
+    if (logoutBtn) logoutBtn.hidden = false;
     if (gate) gate.hidden = true;
     if (logged) logged.hidden = false;
     if (table) {
@@ -795,6 +806,11 @@ async function refreshStats() {
     const ruleAmt = document.getElementById("ruleTrialAmt");
     if (ruleDeals) ruleDeals.textContent = s.trial_max_free_deals ?? 3;
     if (ruleAmt) ruleAmt.textContent = s.trial_max_free_amount ?? 2000;
+
+    const authUsers = document.getElementById("authUsers");
+    const authMachines = document.getElementById("authMachines");
+    if (authUsers) authUsers.textContent = s.auth?.users ?? "—";
+    if (authMachines) authMachines.textContent = s.auth?.machines_bound ?? "—";
   } catch (_) {
     setText("hostCount", "離線");
     setText("rentCount", "—");
@@ -930,6 +946,18 @@ document.getElementById("btnLogout")?.addEventListener("click", async () => {
     } catch (_) {}
   }
   setToken("");
+  await refreshAuth();
+});
+
+document.getElementById("navLogoutBtn")?.addEventListener("click", async () => {
+  const token = getToken();
+  if (token) {
+    try {
+      await api("/api/market/auth/logout", { method: "POST", body: JSON.stringify({ token }) });
+    } catch (_) {}
+  }
+  setToken("");
+  toast("已登出", true);
   await refreshAuth();
 });
 

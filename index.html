@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/market/static/styles.css?v=20260807g" />
+  <link rel="stylesheet" href="/market/static/styles.css?v=20260811a" />
 </head>
 <body>
   <!-- 背景氛圍：柔和光暈，不搶內容 -->
@@ -38,6 +38,7 @@
         <span class="theme-icon theme-icon-light" aria-hidden="true">☀</span>
       </button>
       <a class="btn btn-ghost btn-sm" href="/market/auth" id="navAuthBtn">登入／註冊</a>
+      <button type="button" class="btn btn-ghost btn-sm" id="navLogoutBtn" hidden>登出</button>
       <span class="nav-auth-chip" id="navAuth">未登入</span>
     </div>
   </header>
@@ -86,6 +87,14 @@
         <div class="hero-stat">
           <span>提領狀態</span>
           <strong id="payoutBadge">記帳中</strong>
+        </div>
+        <div class="hero-stat">
+          <span>註冊帳號</span>
+          <strong id="authUsers" class="mono animate-num">—</strong>
+        </div>
+        <div class="hero-stat">
+          <span>已綁機</span>
+          <strong id="authMachines" class="mono animate-num">—</strong>
         </div>
       </aside>
     </section>
@@ -447,6 +456,6 @@
   </div><!-- /.page-frame -->
 
   <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
-  <script src="/market/static/app.js?v=20260807g"></script>
+  <script src="/market/static/app.js?v=20260811a"></script>
 </body>
 </html>

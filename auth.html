@@ -7,30 +7,65 @@
   <meta name="description" content="ComputeGate 帳號登入、註冊與 Email 驗證。" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/market/static/styles.css?v=20260811a" />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/market/static/styles.css?v=20260814d" />
 </head>
 <body class="auth-page">
-  <div class="bg-glow" aria-hidden="true"></div>
-  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-stage" aria-hidden="true">
+    <svg class="bg-mesh" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="meshA" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="var(--mesh-a)" />
+          <stop offset="100%" stop-color="var(--mesh-b)" stop-opacity="0" />
+        </linearGradient>
+        <linearGradient id="meshB" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--mesh-c)" />
+          <stop offset="100%" stop-color="var(--mesh-b)" stop-opacity="0" />
+        </linearGradient>
+        <filter id="softBlur"><feGaussianBlur stdDeviation="28" /></filter>
+      </defs>
+      <path fill="url(#meshA)" filter="url(#softBlur)" opacity="0.55"
+        d="M-80,180 C120,40 280,320 460,210 C640,100 720,40 900,160 C1080,280 1280,80 1520,200 L1520,0 L-80,0 Z" />
+      <path fill="url(#meshB)" filter="url(#softBlur)" opacity="0.4"
+        d="M-60,720 C180,560 340,820 560,680 C780,540 920,600 1120,520 C1320,440 1420,620 1520,560 L1520,900 L-60,900 Z" />
+    </svg>
+    <div class="bg-noise"></div>
+  </div>
+
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon-sprite" aria-hidden="true">
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.5 2v2M14.5 2v2M9.5 20v2M14.5 20v2M2 9.5h2M2 14.5h2M20 9.5h2M20 14.5h2" />
+      <rect x="5" y="5" width="14" height="14" rx="2" />
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+    </symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 1 0 21 14.5Z" />
+    </symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </symbol>
+  </svg>
 
   <div class="page-frame auth-frame">
     <header class="nav">
       <a class="brand" href="/market/" aria-label="回到 ComputeGate">
-        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-mark" aria-hidden="true">
+          <svg class="icon" width="18" height="18"><use href="#i-cpu" /></svg>
+        </span>
         <span class="brand-name">ComputeGate</span>
       </a>
       <div class="nav-actions">
         <button type="button" class="icon-btn" id="themeToggle" title="切換深淺色" aria-label="切換深淺色">
-          <span class="theme-icon theme-icon-dark" aria-hidden="true">☾</span>
-          <span class="theme-icon theme-icon-light" aria-hidden="true">☀</span>
+          <svg class="icon theme-icon theme-icon-dark" width="18" height="18"><use href="#i-moon" /></svg>
+          <svg class="icon theme-icon theme-icon-light" width="18" height="18"><use href="#i-sun" /></svg>
         </button>
         <a class="btn btn-ghost btn-sm" href="/market/">回市場</a>
       </div>
     </header>
 
     <main class="auth-shell">
-      <div class="auth-card">
+      <div class="auth-card anim-in">
         <header class="auth-hero">
           <p class="section-kicker">Account</p>
           <h1>登入 ComputeGate</h1>
@@ -75,7 +110,8 @@
   </div>
 
   <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
-  <script src="/market/static/app.js?v=20260811a"></script>
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
+  <script src="/market/static/app.js?v=20260814d" defer></script>
   <script>
     (function () {
       const tabs = document.querySelectorAll(".auth-tab");
@@ -102,7 +138,6 @@
       const initial = new URLSearchParams(location.search).get("tab") || "login";
       showTab(["login", "register", "verify"].includes(initial) ? initial : "login");
 
-      // 已登入則回市場
       const token = localStorage.getItem("computegate_token");
       if (token) {
         fetch(`/api/market/auth/me?token=${encodeURIComponent(token)}`)

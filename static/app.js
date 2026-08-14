@@ -1,5 +1,74 @@
 const AUTH_TOKEN_KEY = "computegate_token";
 const THEME_KEY = "computegate_theme";
+const REDUCE_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** anime.js 入場／數字動效（CDN 未載入時靜默降級） */
+function cgAnime(opts) {
+  if (REDUCE_MOTION || typeof anime !== "function") return null;
+  return anime(opts);
+}
+
+function playIntroMotion() {
+  const targets = document.querySelectorAll(".anim-in");
+  if (!targets.length) return;
+  if (REDUCE_MOTION || typeof anime !== "function") {
+    targets.forEach((el) => {
+      el.style.opacity = "1";
+      el.style.transform = "none";
+    });
+    return;
+  }
+  anime({
+    targets: ".anim-in",
+    opacity: [0, 1],
+    translateY: [16, 0],
+    duration: 720,
+    delay: anime.stagger(70, { start: 80 }),
+    easing: "easeOutCubic",
+  });
+}
+
+function animateHostCards(root) {
+  const cards = root?.querySelectorAll(".host-card");
+  if (!cards?.length) return;
+  if (REDUCE_MOTION || typeof anime !== "function") {
+    cards.forEach((c) => c.classList.add("is-in"));
+    return;
+  }
+  anime({
+    targets: cards,
+    opacity: [0, 1],
+    translateY: [14, 0],
+    duration: 480,
+    delay: anime.stagger(45),
+    easing: "easeOutQuad",
+    complete: () => cards.forEach((c) => c.classList.add("is-in")),
+  });
+}
+
+function setAnimatedText(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const next = value == null ? "—" : String(value);
+  const prev = el.textContent;
+  if (prev === next) return;
+  el.textContent = next;
+  if (REDUCE_MOTION || typeof anime !== "function") return;
+  anime({
+    targets: el,
+    opacity: [0.35, 1],
+    translateY: [4, 0],
+    duration: 320,
+    easing: "easeOutQuad",
+  });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", playIntroMotion);
+} else {
+  // defer 腳本執行時 DOM 已就緒
+  playIntroMotion();
+}
 
 /** 顯卡連動：品牌 → 系列 → 型號 → 後綴（SUPER／Ti 等依型號顯示） */
 const GPU_CATALOG = {
@@ -397,7 +466,24 @@ function toast(text, ok = true) {
   el.className = `toast ${ok ? "ok" : "err"}`;
   el.textContent = text;
   host.appendChild(el);
-  setTimeout(() => el.remove(), 3800);
+  cgAnime({
+    targets: el,
+    opacity: [0, 1],
+    translateY: [10, 0],
+    duration: 280,
+    easing: "easeOutCubic",
+  });
+  setTimeout(() => {
+    const anim = cgAnime({
+      targets: el,
+      opacity: 0,
+      translateY: 6,
+      duration: 220,
+      easing: "easeInQuad",
+      complete: () => el.remove(),
+    });
+    if (!anim) el.remove();
+  }, 3800);
 }
 
 async function api(path, opts = {}) {
@@ -727,10 +813,7 @@ async function refreshAuth() {
 
 async function refreshStats() {
   if (document.body.classList.contains("auth-page")) return;
-  const setText = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
-  };
+  const setText = setAnimatedText;
   try {
     const s = await api("/api/market/stats");
     window.__cgUnbindHours = s.auth?.unbind_cooldown_hours || 24;
@@ -749,6 +832,7 @@ async function refreshStats() {
     const badge = document.getElementById("payoutBadge");
     const rule = document.getElementById("payoutRule");
     const banner = document.getElementById("payoutBanner");
+    const BANNER_DISMISS_KEY = "computegate_banner_dismissed";
     if (s.payout_ready) {
       if (badge) badge.textContent = "可申請提領";
       if (rule) rule.textContent = "收款管道已開啟：達門檻且非試用期可申請提領。";
@@ -757,8 +841,12 @@ async function refreshStats() {
       if (badge) badge.textContent = "只記帳不提領";
       if (rule) rule.textContent = "目前收款管道尚未完全打通：僅記帳，暫不可提領。";
       if (banner) {
-        banner.hidden = false;
-        banner.innerHTML = "目前收款管道尚未完全打通：所有手續費與餘額<strong>僅記帳，暫不可提領</strong>。打通後會開放。";
+        const dismissed = localStorage.getItem(BANNER_DISMISS_KEY) === "1";
+        banner.hidden = dismissed;
+        const label = banner.querySelector("span");
+        if (label) {
+          label.innerHTML = "目前收款管道尚未完全打通：所有手續費與餘額<strong>僅記帳，暫不可提領</strong>。打通後會開放。";
+        }
       }
     }
 
@@ -807,10 +895,8 @@ async function refreshStats() {
     if (ruleDeals) ruleDeals.textContent = s.trial_max_free_deals ?? 3;
     if (ruleAmt) ruleAmt.textContent = s.trial_max_free_amount ?? 2000;
 
-    const authUsers = document.getElementById("authUsers");
-    const authMachines = document.getElementById("authMachines");
-    if (authUsers) authUsers.textContent = s.auth?.users ?? "—";
-    if (authMachines) authMachines.textContent = s.auth?.machines_bound ?? "—";
+    setText("authUsers", s.auth?.users ?? "—");
+    setText("authMachines", s.auth?.machines_bound ?? "—");
   } catch (_) {
     setText("hostCount", "離線");
     setText("rentCount", "—");
@@ -839,6 +925,11 @@ function renderHostMarket() {
     "release-desc": (a, b) => (b.release_percent ?? 0) - (a.release_percent ?? 0),
   };
   filtered.sort(sorters[sort] || sorters["spot-asc"]);
+  const countEl = document.getElementById("hostResultCount");
+  if (countEl) {
+    countEl.hidden = false;
+    countEl.innerHTML = `顯示 <strong>${filtered.length}</strong>／共 ${rows.length} 台`;
+  }
   if (!filtered.length) {
     list.innerHTML = `<p class="host-empty">${rows.length ? "沒有符合篩選的主機" : "尚無供給。成為第一位掛機者？"}</p>`;
     return;
@@ -858,7 +949,14 @@ function renderHostMarket() {
       `</article>`
     );
   }).join("");
+  animateHostCards(list);
 }
+
+document.getElementById("payoutBannerDismiss")?.addEventListener("click", () => {
+  localStorage.setItem("computegate_banner_dismissed", "1");
+  const banner = document.getElementById("payoutBanner");
+  if (banner) banner.hidden = true;
+});
 
 document.getElementById("hostFilter")?.addEventListener("input", renderHostMarket);
 document.getElementById("hostSort")?.addEventListener("change", renderHostMarket);

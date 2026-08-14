@@ -7,19 +7,75 @@
   <meta name="description" content="釋放閒置 GPU，或租用需要的算力。成交抽 1.5%，供給方可自訂釋出 %。" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/market/static/styles.css?v=20260811a" />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/market/static/styles.css?v=20260814d" />
 </head>
 <body>
-  <!-- 背景氛圍：柔和光暈，不搶內容 -->
-  <div class="bg-glow" aria-hidden="true"></div>
-  <div class="bg-grid" aria-hidden="true"></div>
+  <!-- Haikei 風格：有機網格 + 波形層，作為全頁氛圍 -->
+  <div class="bg-stage" aria-hidden="true">
+    <svg class="bg-mesh" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="meshA" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="var(--mesh-a)" />
+          <stop offset="100%" stop-color="var(--mesh-b)" stop-opacity="0" />
+        </linearGradient>
+        <linearGradient id="meshB" x1="100%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--mesh-c)" />
+          <stop offset="100%" stop-color="var(--mesh-b)" stop-opacity="0" />
+        </linearGradient>
+        <filter id="softBlur"><feGaussianBlur stdDeviation="28" /></filter>
+      </defs>
+      <path fill="url(#meshA)" filter="url(#softBlur)" opacity="0.55"
+        d="M-80,180 C120,40 280,320 460,210 C640,100 720,40 900,160 C1080,280 1280,80 1520,200 L1520,0 L-80,0 Z" />
+      <path fill="url(#meshB)" filter="url(#softBlur)" opacity="0.4"
+        d="M-60,720 C180,560 340,820 560,680 C780,540 920,600 1120,520 C1320,440 1420,620 1520,560 L1520,900 L-60,900 Z" />
+      <path class="bg-wave" fill="none" stroke="var(--mesh-line)" stroke-width="1.2"
+        d="M0,520 C180,460 320,600 480,540 C640,480 760,400 920,460 C1080,520 1240,480 1440,500" />
+      <path class="bg-wave bg-wave-2" fill="none" stroke="var(--mesh-line)" stroke-width="1"
+        d="M0,580 C220,640 380,500 540,560 C700,620 860,700 1040,640 C1220,580 1340,620 1440,600" />
+    </svg>
+    <div class="bg-noise"></div>
+  </div>
 
-  <!-- page-frame：內容欄 1200px，避免中間一條過窄 -->
+  <svg xmlns="http://www.w3.org/2000/svg" class="icon-sprite" aria-hidden="true">
+    <symbol id="i-cpu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.5 2v2M14.5 2v2M9.5 20v2M14.5 20v2M2 9.5h2M2 14.5h2M20 9.5h2M20 14.5h2" />
+      <rect x="5" y="5" width="14" height="14" rx="2" />
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+    </symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 20h18M7 16V9M12 16V5M17 16v-4" />
+    </symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H19a1 1 0 0 1 1 1v2.5M3 7.5V18a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5.5a1 1 0 0 0-1-1H16a2.5 2.5 0 0 0 0 5h4" />
+      <path d="M3 7.5h16" />
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3 5 6v5c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3Z" />
+      <path d="m9.5 12 1.8 1.8 3.7-3.8" />
+    </symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 14.5A8.5 8.5 0 0 1 9.5 3 7 7 0 1 0 21 14.5Z" />
+    </symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+    </symbol>
+    <symbol id="i-login" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 17 15 12 10 7M15 12H3" />
+      <path d="M21 4v16" />
+    </symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </symbol>
+  </svg>
+
   <div class="page-frame">
   <header class="nav">
     <a class="brand" href="#top" aria-label="ComputeGate 首頁">
-      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-mark" aria-hidden="true">
+        <svg class="icon" width="18" height="18"><use href="#i-cpu" /></svg>
+      </span>
       <span class="brand-name">ComputeGate</span>
     </a>
     <nav class="nav-links" aria-label="主要導覽">
@@ -34,72 +90,92 @@
         <strong id="navBalance">—</strong>
       </div>
       <button type="button" class="icon-btn" id="themeToggle" title="切換深淺色" aria-label="切換深淺色">
-        <span class="theme-icon theme-icon-dark" aria-hidden="true">☾</span>
-        <span class="theme-icon theme-icon-light" aria-hidden="true">☀</span>
+        <svg class="icon theme-icon theme-icon-dark" width="18" height="18"><use href="#i-moon" /></svg>
+        <svg class="icon theme-icon theme-icon-light" width="18" height="18"><use href="#i-sun" /></svg>
       </button>
-      <a class="btn btn-ghost btn-sm" href="/market/auth" id="navAuthBtn">登入／註冊</a>
+      <a class="btn btn-ghost btn-sm" href="/market/auth" id="navAuthBtn">
+        <svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-login" /></svg>
+        登入／註冊
+      </a>
       <button type="button" class="btn btn-ghost btn-sm" id="navLogoutBtn" hidden>登出</button>
       <span class="nav-auth-chip" id="navAuth">未登入</span>
     </div>
   </header>
 
   <div class="banner banner-warn" id="payoutBanner" hidden role="status">
-    目前收款管道尚未完全打通：所有手續費與餘額<strong>僅記帳，暫不可提領</strong>。打通後會開放。
+    <span>目前收款管道尚未完全打通：所有手續費與餘額<strong>僅記帳，暫不可提領</strong>。打通後會開放。</span>
+    <button type="button" class="banner-dismiss" id="payoutBannerDismiss" aria-label="關閉提示">關閉</button>
   </div>
 
   <main id="top" class="page-shell">
-    <!-- Hero：品牌為主視覺錨點 -->
+    <!-- Hero：全幅視覺 + 品牌優先（無側欄卡片） -->
     <section class="hero">
+      <div class="hero-visual" aria-hidden="true">
+        <svg class="hero-orbits" viewBox="0 0 640 420" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <radialGradient id="orbCore" cx="50%" cy="45%" r="50%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.55" />
+              <stop offset="55%" stop-color="var(--accent-2)" stop-opacity="0.18" />
+              <stop offset="100%" stop-color="transparent" />
+            </radialGradient>
+          </defs>
+          <ellipse cx="360" cy="200" rx="220" ry="140" fill="url(#orbCore)" />
+          <ellipse class="orbit" cx="360" cy="200" rx="190" ry="118" fill="none" stroke="var(--mesh-line)" stroke-width="1" />
+          <ellipse class="orbit orbit-2" cx="360" cy="200" rx="140" ry="86" fill="none" stroke="var(--mesh-line)" stroke-width="1" />
+          <circle class="orbit-dot" cx="520" cy="160" r="4" fill="var(--accent)" />
+          <circle class="orbit-dot orbit-dot-2" cx="250" cy="250" r="3" fill="var(--accent-2)" />
+        </svg>
+      </div>
       <div class="hero-copy">
-        <p class="eyebrow">GPU 算力媒合 · 1.5% 平台費</p>
-        <h1 class="hero-brand">ComputeGate</h1>
-        <p class="hero-headline">釋放閒置 GPU，或租用需要的算力</p>
-        <p class="lede">
+        <p class="eyebrow anim-in">GPU 算力媒合 · 1.5% 平台費</p>
+        <h1 class="hero-brand anim-in">ComputeGate</h1>
+        <p class="hero-headline anim-in">釋放閒置 GPU，或租用需要的算力</p>
+        <p class="lede anim-in">
           平台只做媒合與記帳。供給方可自訂<strong>釋出 %</strong>；
           新用戶享 <strong>7 天試用</strong>
           （最多 <strong id="trialDeals">3</strong> 筆或
           <strong id="trialAmt">2000</strong> TWD 免手續費，同一 Email 終身一次）。
         </p>
-        <div class="cta">
-          <a class="btn btn-primary" href="#join-host">我要掛機出租</a>
+        <div class="cta anim-in">
+          <a class="btn btn-primary" href="#join-host">
+            我要掛機出租
+            <svg class="icon" width="16" height="16" aria-hidden="true"><use href="#i-arrow" /></svg>
+          </a>
           <a class="btn btn-secondary" href="#join-rent">我要租用算力</a>
           <a class="btn btn-ghost" href="#quote">先試算報價</a>
         </div>
-        <ul class="hero-pills" aria-label="重點規則">
-          <li>手續費 1.5%</li>
-          <li>釋出 % 自己決定</li>
-          <li id="payoutChip">收款未通・只記帳</li>
-        </ul>
       </div>
-      <aside class="hero-panel" aria-label="即時盤勢摘要">
-        <div class="hero-stat">
-          <span>SPOT 指數</span>
-          <strong id="idx" class="mono animate-num">—</strong>
-        </div>
-        <div class="hero-stat">
-          <span>現貨基準</span>
-          <strong id="spot" class="mono animate-num">—</strong>
-        </div>
-        <div class="hero-stat">
-          <span>平台費率</span>
-          <strong id="feePct" class="mono">1.5%</strong>
-        </div>
-        <div class="hero-stat">
-          <span>提領狀態</span>
-          <strong id="payoutBadge">記帳中</strong>
-        </div>
-        <div class="hero-stat">
-          <span>註冊帳號</span>
-          <strong id="authUsers" class="mono animate-num">—</strong>
-        </div>
-        <div class="hero-stat">
-          <span>已綁機</span>
-          <strong id="authMachines" class="mono animate-num">—</strong>
-        </div>
-      </aside>
     </section>
 
-    <!-- 即時指數 -->
+    <!-- 即時盤勢：橫向軌道，非 hero 卡片 -->
+    <aside class="live-rail anim-in" aria-label="即時盤勢摘要">
+      <div class="live-item">
+        <span>SPOT 指數</span>
+        <strong id="idx" class="mono animate-num">—</strong>
+      </div>
+      <div class="live-item">
+        <span>現貨基準</span>
+        <strong id="spot" class="mono animate-num">—</strong>
+      </div>
+      <div class="live-item">
+        <span>平台費率</span>
+        <strong id="feePct" class="mono">1.5%</strong>
+      </div>
+      <div class="live-item">
+        <span>提領狀態</span>
+        <strong id="payoutBadge">記帳中</strong>
+      </div>
+      <div class="live-item">
+        <span>註冊帳號</span>
+        <strong id="authUsers" class="mono animate-num">—</strong>
+      </div>
+      <div class="live-item">
+        <span>已綁機</span>
+        <strong id="authMachines" class="mono animate-num">—</strong>
+      </div>
+      <p class="live-chip" id="payoutChip">收款未通・只記帳</p>
+    </aside>
+
     <section id="index" class="section">
       <div class="section-head">
         <div>
@@ -110,21 +186,25 @@
       </div>
       <div class="index-grid" id="stats">
         <article class="metric-card metric-accent">
+          <span class="metric-icon" aria-hidden="true"><svg class="icon" width="20" height="20"><use href="#i-cpu" /></svg></span>
           <span class="metric-label">供給主機</span>
           <strong id="hostCount" class="mono">—</strong>
           <span class="metric-hint">目前上架</span>
         </article>
         <article class="metric-card">
+          <span class="metric-icon" aria-hidden="true"><svg class="icon" width="20" height="20"><use href="#i-chart" /></svg></span>
           <span class="metric-label">需求方</span>
           <strong id="rentCount" class="mono">—</strong>
           <span class="metric-hint">已發需求</span>
         </article>
         <article class="metric-card">
+          <span class="metric-icon" aria-hidden="true"><svg class="icon" width="20" height="20"><use href="#i-wallet" /></svg></span>
           <span class="metric-label">累計手續費</span>
           <strong id="feeTotal" class="mono">—</strong>
           <span class="metric-hint">平台抽成合計</span>
         </article>
         <article class="metric-card">
+          <span class="metric-icon" aria-hidden="true"><svg class="icon" width="20" height="20"><use href="#i-shield" /></svg></span>
           <span class="metric-label">未結爭議</span>
           <strong id="openDisputes" class="mono">—</strong>
           <span class="metric-hint">人工審核中</span>
@@ -139,7 +219,6 @@
       </div>
     </section>
 
-    <!-- 帳號：未登入只顯示入口；已登入顯示錢包 -->
     <section id="account" class="section">
       <div class="section-head">
         <div>
@@ -197,7 +276,6 @@
       </div>
     </section>
 
-    <!-- 報價器 -->
     <section id="quote" class="section section-panel">
       <div class="section-head">
         <div>
@@ -257,7 +335,6 @@
       <div class="quote-out" id="quoteOut" role="status">選擇顯卡後按「試算報價」，或調整參數後自動更新。</div>
     </section>
 
-    <!-- 掛機／租用 -->
     <section id="join" class="section">
       <div class="section-head">
         <div>
@@ -338,7 +415,6 @@
       </div>
     </section>
 
-    <!-- 釋出 % -->
     <section id="release" class="section section-panel">
       <div class="section-head">
         <div>
@@ -367,7 +443,6 @@
       <p class="form-msg" id="releaseMsg" hidden></p>
     </section>
 
-    <!-- 市場列表 -->
     <section id="market" class="section">
       <div class="section-head">
         <div>
@@ -387,12 +462,12 @@
           </select>
         </div>
       </div>
+      <p class="market-count" id="hostResultCount" hidden>顯示 <strong>0</strong>／共 0 台</p>
       <div id="hostList" class="host-grid" aria-live="polite">
         <p class="hint">載入中…</p>
       </div>
     </section>
 
-    <!-- 規則 -->
     <section id="rules" class="section section-panel">
       <div class="section-head">
         <div>
@@ -453,9 +528,10 @@
       <p>平台主控在 <a href="/">EarnBot 主控台</a></p>
     </div>
   </footer>
-  </div><!-- /.page-frame -->
+  </div>
 
   <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
-  <script src="/market/static/app.js?v=20260811a"></script>
+  <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.2/lib/anime.min.js" defer></script>
+  <script src="/market/static/app.js?v=20260814d" defer></script>
 </body>
 </html>
